@@ -11,6 +11,7 @@ class TeamBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     group: str = Field(..., min_length=1, max_length=20)
     fifa_code: str = Field(..., min_length=2, max_length=3)
+    fifa_rank: int = Field(..., ge=0)
 
     @field_validator("name", "group")
     @classmethod
@@ -41,6 +42,7 @@ class TeamUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=100)
     group: str | None = Field(default=None, min_length=1, max_length=20)
     fifa_code: str | None = Field(default=None, min_length=2, max_length=3)
+    fifa_rank: int | None = Field(default=None)
 
     @field_validator("name", "group")
     @classmethod

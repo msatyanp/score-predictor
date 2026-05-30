@@ -1,8 +1,9 @@
 # Prediction Rules
 
 ## Exact Score
-+15 points
++15 points if perfectly predicted
 +5 if winning team only correct
+
 
 ## Goal Difference
 +5 points will be given if predicted goal difference matches the actual goal difference. e.g. predicted: 4-3, actual: 3-2
@@ -15,14 +16,6 @@
 
 +0 Incase of penalty
 
-## Game Duration
-+5 Points will be given for 90 minutes prediction is matched.
-+10 Points will be given for 120 minutes prediction is matched.
-+15 Points will be given for penalty shootout prediction is matched.
-+0 points will be awarded if game duration does not match.
-
-## Opening Team (if user's prediction is same as game's opening prediction)
-+3 points
 
 ## Total Yellow Card(s)
 No Point for zero prediction.
@@ -38,6 +31,20 @@ No Point for zero prediction.
 +10 Points will be given only for exact prediction of total Red Card(s). You should predict with more than zero card(s).
 +5 Points will be give if the Red card prediction is more than zero and actual is also more than 0 but not actual.
 -2 Points will be deducted if user predicts Red card and no red card is given in the actual game.
+
+## First Half and First Scorer
++5 points if the first half score is predicted correctly.
++5 points if the first scorer is predicted correctly.
+
+## Game Duration
++5 Points will be given for 90 minutes prediction is matched.
++10 Points will be given for 120 minutes prediction is matched.
++15 Points will be given for penalty shootout prediction is matched.
++0 points will be awarded if game duration does not match.
+
+
+## Opening Team (if user's prediction is same as game's opening prediction)
++3 points
 
 Note:
 

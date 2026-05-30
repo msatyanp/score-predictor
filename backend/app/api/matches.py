@@ -18,7 +18,7 @@ router = APIRouter(prefix="/matches", tags=["Matches"])
 
 admin_router = APIRouter(
     prefix="/admin/matches",
-    tags=["Admin Matches"],
+    tags=["Matches"],
     dependencies=[Depends(get_current_admin_user)],
 )
 
@@ -32,7 +32,7 @@ async def list_upcoming_matches(
     db: Annotated[AsyncSession, Depends(get_db)],
     offset: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
-    include_locked: bool = True,
+    include_locked: bool = None,
 ) -> MatchListResponse:
     """Return upcoming matches for prediction and home-page flows."""
     service = MatchService(db)
@@ -41,6 +41,27 @@ async def list_upcoming_matches(
         limit=limit,
         include_locked=include_locked,
     )
+
+@router.get(
+    "",
+    response_model=MatchListResponse,
+    summary="List matches",
+)
+async def list_asked_matches(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    match_day: Annotated[int | None, Query(gt=0)] = None,
+    match_stage: Annotated[str | None, Query(min_length=1)] = None,
+) -> MatchListResponse:
+    """Return paginated matches for public match views."""
+    service = MatchService(db)
+    return await service.list_matches(
+        offset=offset,
+        limit=limit,
+        match_day=match_day,
+        match_stage=match_stage,
+    )   
 
 
 @admin_router.get(
@@ -52,7 +73,6 @@ async def list_matches(
     db: Annotated[AsyncSession, Depends(get_db)],
     offset: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
-    match_day: Annotated[int | None, Query(gt=0)] = None,
     match_locked: bool | None = None,
 ) -> MatchListResponse:
     """Return paginated matches for admin management."""
@@ -60,7 +80,6 @@ async def list_matches(
     return await service.list_matches(
         offset=offset,
         limit=limit,
-        match_day=match_day,
         match_locked=match_locked,
     )
 

@@ -1,9 +1,7 @@
 """Match business logic."""
 
 import logging
-
-from datetime import timedelta
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from fastapi import HTTPException, status
@@ -11,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.match import Match
 from app.repositories.match_repository import MatchRepository
+from app.repositories.setting_repository import SettingRepository
 from app.repositories.team_repository import TeamRepository
 from app.schemas.match import (
     MatchCreate,
@@ -18,8 +17,14 @@ from app.schemas.match import (
     MatchResponse,
     MatchUpdate,
 )
+from app.services.team_service import TeamService
 
 logger = logging.getLogger(__name__)
+
+MATCH_STAGE_ALIASES = {
+    "quarterfinals": "QF",
+    "semifinals": "SF",
+}
 
 class MatchService:
     """Handles match validation and orchestration."""
@@ -27,25 +32,37 @@ class MatchService:
     def __init__(self, db: AsyncSession) -> None:
         self._match_repository = MatchRepository(db)
         self._team_repository = TeamRepository(db)
+        self._setting_repository = SettingRepository(db)
 
     async def list_matches(
         self,
         *,
         offset: int,
         limit: int,
+        match_stage: str | None = None,
         match_day: int | None = None,
         match_locked: bool | None = None,
     ) -> MatchListResponse:
         """Return paginated matches for admin screens."""
         try:
+
+            if match_stage is not None:
+                match_stage = MATCH_STAGE_ALIASES.get(match_stage, match_stage)
+
+            if match_day is None and match_stage is None:
+                setting = await self._setting_repository.get_by_name("current_match_day")
+                match_day = int(setting.value) if setting else None
+
             matches = await self._match_repository.list_matches(
                 offset=offset,
                 limit=limit,
                 match_day=match_day,
+                match_stage=match_stage,
                 match_locked=match_locked,
             )
             total = await self._match_repository.count_matches(
                 match_day=match_day,
+                match_stage=match_stage,
                 match_locked=match_locked,
             )
             return self._build_list_response(
@@ -137,7 +154,7 @@ class MatchService:
             await self._validate_team_references(
                 team1_id=data.team1_id,
                 team2_id=data.team2_id,
-                opening_team_id=data.opening_team_id,
+                kick_off_team_id=data.kick_off_team_id,
                 first_scoring_team_id=values.get("first_scoring_team_id"),
             )
 
@@ -172,7 +189,7 @@ class MatchService:
 
             team1_id = values.get("team1_id", match.team1_id)
             team2_id = values.get("team2_id", match.team2_id)
-            opening_team_id = values.get("opening_team_id", match.opening_team_id)
+            kick_off_team_id = values.get("kick_off_team_id", match.kick_off_team_id)
             first_scoring_team_id = values.get(
                 "first_scoring_team_id",
                 match.first_scoring_team_id,
@@ -202,7 +219,7 @@ class MatchService:
             await self._validate_team_references(
                 team1_id=team1_id,
                 team2_id=team2_id,
-                opening_team_id=opening_team_id,
+                kick_off_team_id=kick_off_team_id,
                 first_scoring_team_id=first_scoring_team_id,
             )
 
@@ -250,7 +267,7 @@ class MatchService:
         *,
         team1_id: Any,
         team2_id: Any,
-        opening_team_id: Any,
+        kick_off_team_id: Any,
         first_scoring_team_id: Any,
     ) -> None:
         """Validate match team relationships and references."""
@@ -266,13 +283,13 @@ class MatchService:
                 detail="team1_id and team2_id must be different",
             )
 
-        if opening_team_id is not None and opening_team_id not in {
+        if kick_off_team_id is not None and kick_off_team_id not in {
             team1_id,
             team2_id,
         }:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="opening_team_id must match one of the match teams",
+                detail="kick_off_team_id must match one of the match teams",
             )
 
         if first_scoring_team_id is not None and first_scoring_team_id not in {
@@ -285,7 +302,7 @@ class MatchService:
             )
 
         missing_team_ids: list[int] = []
-        for team_id in {team1_id, team2_id, opening_team_id, first_scoring_team_id}:
+        for team_id in {team1_id, team2_id, kick_off_team_id, first_scoring_team_id}:
             if team_id is None:
                 continue
 
@@ -359,7 +376,9 @@ class MatchService:
         return {
             **match.__dict__,
             "team1_name": match.team1.name,
-            "team2_name": match.team2.name,
             "team1_group": match.team1.group,
+            "team1_flag_url": TeamService.team_flag_url(match.team1),
+            "team2_name": match.team2.name,
             "team2_group": match.team2.group,
+            "team2_flag_url": TeamService.team_flag_url(match.team2),
         }

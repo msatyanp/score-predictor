@@ -54,7 +54,7 @@ class SettingRepository:
         statement = select(Setting)
 
         if search is not None:
-            statement = statement.where(Setting.name.ilike(f"%{search}%"))
+            statement = statement.where(Setting.name.ilike(f"%_{search}"))
 
         result = await self._db.execute(
             statement.order_by(Setting.name.asc(), Setting.id.asc())
@@ -68,7 +68,7 @@ class SettingRepository:
         statement = select(func.count()).select_from(Setting)
 
         if search is not None:
-            statement = statement.where(Setting.name.ilike(f"%{search}%"))
+            statement = statement.where(Setting.name.ilike(f"%_{search}"))
 
         result = await self._db.execute(statement)
         return int(result.scalar_one())

@@ -13,13 +13,16 @@ CREATE TABLE matches (
     yellow_card_count INT NULL DEFAULT NULL,
     red_card_count INT NULL DEFAULT NULL,
 
-    -- Opening Team
-    opening_team_id INT NULL DEFAULT NULL,
+    -- Kick-off Team
+    kick_off_team_id INT NULL DEFAULT NULL,
     first_scoring_team_id INT NULL DEFAULT NULL,
     is_goal_in_first_half BOOLEAN NULL DEFAULT NULL,
 
     -- Game Duration
-    game_duration ENUM('90', '120', 'PENALTY') NULL DEFAULT NULL,
+    match_duration ENUM('90', '120', 'PENALTY') NULL DEFAULT NULL,
+
+    -- Match Stage
+    match_stage ENUM('GROUP', 'R32', 'R16', 'QF', 'SF', 'F') NULL DEFAULT NULL,
 
     -- Scheduling
     match_datetime TIMESTAMP NOT NULL,
@@ -44,8 +47,8 @@ CREATE TABLE matches (
         FOREIGN KEY (team2_id)
         REFERENCES teams(id),
 
-    CONSTRAINT fk_matches_opening_team
-        FOREIGN KEY (opening_team_id)
+    CONSTRAINT fk_matches_kick_off_team
+        FOREIGN KEY (kick_off_team_id)
         REFERENCES teams(id),
 
     CONSTRAINT fk_matches_first_scoring_team
@@ -71,11 +74,11 @@ CREATE TABLE matches (
     CONSTRAINT ck_matches_match_day_positive
         CHECK (match_day > 0),
 
-    CONSTRAINT ck_matches_opening_team_participant
+    CONSTRAINT ck_matches_kick_off_team_participant
         CHECK (
-            opening_team_id IS NULL
-            OR opening_team_id = team1_id
-            OR opening_team_id = team2_id
+            kick_off_team_id IS NULL
+            OR kick_off_team_id = team1_id
+            OR kick_off_team_id = team2_id
         ),
 
     CONSTRAINT ck_matches_first_scoring_team_participant
@@ -92,7 +95,7 @@ CREATE TABLE matches (
     INDEX ix_matches_locked_datetime (match_locked, match_datetime),
     INDEX ix_matches_team1_id (team1_id),
     INDEX ix_matches_team2_id (team2_id),
-    INDEX ix_matches_opening_team_id (opening_team_id),
+    INDEX ix_matches_kick_off_team_id (kick_off_team_id),
     INDEX ix_matches_first_scoring_team_id (first_scoring_team_id)
 
 ) ENGINE=InnoDB

@@ -14,10 +14,10 @@ class PredictionFields(BaseModel):
     team2_score: int = Field(..., ge=0)
     yellow_card_count: int = Field(..., ge=0)
     red_card_count: int = Field(..., ge=0)
-    opening_team_id: int = Field(..., gt=0)
+    kick_off_team_id: int = Field(..., gt=0)
     first_scoring_team_id: int | None = Field(default=None, gt=0)
     is_goal_in_first_half: bool | None = None
-    game_duration: GameDuration
+    match_duration: GameDuration
 
     @model_validator(mode="after")
     def validate_goal_timeline_fields(self) -> "PredictionFields":
@@ -52,10 +52,10 @@ class PredictionUpdate(BaseModel):
     team2_score: int | None = Field(default=None, ge=0)
     yellow_card_count: int | None = Field(default=None, ge=0)
     red_card_count: int | None = Field(default=None, ge=0)
-    opening_team_id: int | None = Field(default=None, gt=0)
+    kick_off_team_id: int | None = Field(default=None, gt=0)
     first_scoring_team_id: int | None = Field(default=None, gt=0)
     is_goal_in_first_half: bool | None = None
-    game_duration: GameDuration | None = None
+    match_duration: GameDuration | None = None
 
 
 class PredictionResponse(PredictionFields):

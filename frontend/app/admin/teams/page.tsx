@@ -16,9 +16,10 @@ const emptyFormState: TeamCreate = {
   name: "",
   group: "",
   fifa_code: "",
+  fifa_rank: 0,
 };
 
-export default function AdminTeamsPage() {
+const AdminTeamsPage = () => {
   const [teams, setTeams] = useState<TeamResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -34,7 +35,7 @@ export default function AdminTeamsPage() {
   useEffect(() => {
     let isMounted = true;
 
-    async function loadTeams() {
+    const loadTeams = async () => {
       setIsLoading(true);
       setLoadError(null);
 
@@ -52,7 +53,7 @@ export default function AdminTeamsPage() {
           setIsLoading(false);
         }
       }
-    }
+    };
 
     void loadTeams();
 
@@ -61,33 +62,34 @@ export default function AdminTeamsPage() {
     };
   }, []);
 
-  function handleOpenCreateModal() {
+  const handleOpenCreateModal = () => {
     setEditingTeamId(null);
     setFormState(emptyFormState);
     setFormError(null);
     setIsModalOpen(true);
-  }
+  };
 
-  function handleOpenEditModal(team: TeamResponse) {
+  const handleOpenEditModal = (team: TeamResponse) => {
     setEditingTeamId(team.id);
     setFormState({
       name: team.name,
       group: team.group,
       fifa_code: team.fifa_code,
+      fifa_rank: team.fifa_rank
     });
     setFormError(null);
     setIsModalOpen(true);
-  }
+  };
 
-  function handleCloseModal() {
+  const handleCloseModal = () => {
     setIsModalOpen(false);
-  }
+  };
 
-  function updateField(field: keyof TeamCreate, value: string) {
+  const updateField = (field: keyof TeamCreate, value: string) => {
     setFormState((prev) => ({ ...prev, [field]: value }));
-  }
+  };
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setFormError(null);
     setIsSubmitting(true);
@@ -111,9 +113,9 @@ export default function AdminTeamsPage() {
     } finally {
       setIsSubmitting(false);
     }
-  }
+  };
 
-  async function handleDelete(team: TeamResponse) {
+  const handleDelete = async (team: TeamResponse) => {
     if (!window.confirm(`Delete team ${team.name}?`)) {
       return;
     }
@@ -127,14 +129,14 @@ export default function AdminTeamsPage() {
     } finally {
       setIsDeletingId(null);
     }
-  }
+  };
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
       <section className="flex flex-wrap items-center justify-between gap-3">
         <div><h2>Tournament Teams</h2></div>
         <button
-          className="inline-flex h-10 items-center rounded-md bg-zinc-950 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800"
+          className="inline-flex h-10 items-center cursor-pointer rounded-md bg-zinc-950 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800"
           type="button"
           onClick={handleOpenCreateModal}
         >
@@ -154,8 +156,9 @@ export default function AdminTeamsPage() {
             <thead className="bg-zinc-50 text-left text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500">
               <tr>
                 <th className="px-5 py-3">Team</th>
+                <th className="px-5 py-3">FIFA code</th>
                 <th className="px-5 py-3">Group</th>
-                <th className="px-5 py-3">Country code</th>
+                <th className="px-5 py-3">FIFA Rank</th>
                 <th className="px-5 py-3 text-right">Actions</th>
               </tr>
             </thead>
@@ -170,22 +173,26 @@ export default function AdminTeamsPage() {
                 teams.map((team) => (
                   <tr key={team.id}>
                     <td className="px-5 py-4 font-medium text-zinc-950">
-                      {team.name}
+                      <div className="flex items-center gap-2">
+                        <img className="h-5 w-auto rounded object-cover shadow-sm" decoding="async" loading="lazy" src={team.flag_url} alt="flag" />
+                        <span className="ml-2">{team.name}</span>
+                      </div>
                     </td>
-                    <td className="px-5 py-4 text-zinc-700">{team.group}</td>
                     <td className="px-5 py-4 text-zinc-700">{team.fifa_code}</td>
+                    <td className="px-5 py-4 text-zinc-700">{team.group}</td>
+                    <td className="px-5 py-4 text-zinc-700">{team.fifa_rank}</td>
                     <td className="px-5 py-4 text-right">
                       <div className="flex justify-end gap-3">
                         <button
                           type="button"
-                          className="font-semibold text-emerald-700 hover:text-emerald-900"
+                          className="font-semibold cursor-pointer text-emerald-700 hover:text-emerald-900"
                           onClick={() => handleOpenEditModal(team)}
                         >
                           Edit
                         </button>
                         <button
                           type="button"
-                          className="font-semibold text-rose-700 hover:text-rose-900 disabled:text-zinc-400"
+                          className="font-semibold cursor-pointer text-rose-700 hover:text-rose-900 disabled:text-zinc-400"
                           disabled={isDeletingId === team.id}
                           onClick={() => void handleDelete(team)}
                         >
@@ -246,6 +253,18 @@ export default function AdminTeamsPage() {
             />
           </label>
 
+          <label className="block">
+            <span className="text-sm font-medium text-zinc-700">FIFA rank</span>
+            <input
+              min={0}
+              type="number"
+              required
+              value={formState.fifa_rank}
+              onChange={(e) => updateField("fifa_rank", e.target.value)}
+              className="mt-2 h-11 w-full rounded-md border border-zinc-300 px-3 text-zinc-950 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100 uppercase"
+            />
+          </label>
+
           {formError ? (
             <p className="mt-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
               {formError}
@@ -256,14 +275,14 @@ export default function AdminTeamsPage() {
             <button
               type="button"
               onClick={handleCloseModal}
-              className="inline-flex h-11 items-center justify-center rounded-md border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50"
+              className="inline-flex h-11 items-center cursor-pointer justify-center rounded-md border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex h-11 items-center justify-center rounded-md bg-zinc-950 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
+              className="inline-flex h-11 items-center cursor-pointer justify-center rounded-md bg-zinc-950 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
             >
               {isSubmitting ? "Saving..." : "Save team"}
             </button>
@@ -272,4 +291,6 @@ export default function AdminTeamsPage() {
       </Modal>
     </main>
   );
-}
+};
+
+export default AdminTeamsPage;

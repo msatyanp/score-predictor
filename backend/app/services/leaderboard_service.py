@@ -29,15 +29,16 @@ class UserLeaderboardTotals:
 
     user_id: int
     name: str
-    total_points: int = 0
-    predictions_made: int = 0
-    scored_predictions: int = 0
-    exact_scores: int = 0
-    correct_results: int = 0
+    predicted_matches: int = 0
+    score_points: int = 0
     goal_difference_points: int = 0
-    duration_points: int = 0
-    opening_team_points: int = 0
-    card_points: int = 0
+    yellow_card_points: int = 0
+    red_card_points: int = 0
+    kick_off_team_points: int = 0
+    first_scoring_team_points: int = 0
+    scored_in_first_half_points: int = 0
+    match_duration_points: int = 0
+    total_points: int = 0
 
     def to_response(self, *, rank: int) -> LeaderboardEntryResponse:
         """Convert accumulated totals to an API response schema."""
@@ -45,15 +46,16 @@ class UserLeaderboardTotals:
             rank=rank,
             user_id=self.user_id,
             name=self.name,
-            total_points=self.total_points,
-            predictions_made=self.predictions_made,
-            scored_predictions=self.scored_predictions,
-            exact_scores=self.exact_scores,
-            correct_results=self.correct_results,
+            predicted_matches=self.predicted_matches,
+            score_points=self.score_points,
             goal_difference_points=self.goal_difference_points,
-            duration_points=self.duration_points,
-            opening_team_points=self.opening_team_points,
-            card_points=self.card_points,
+            yellow_card_points=self.yellow_card_points,
+            red_card_points=self.red_card_points,
+            kick_off_team_points=self.kick_off_team_points,
+            first_scoring_team_points=self.first_scoring_team_points,
+            scored_in_first_half_points=self.scored_in_first_half_points,
+            match_duration_points=self.match_duration_points,
+            total_points=self.total_points,
         )
 
 
@@ -61,13 +63,15 @@ class UserLeaderboardTotals:
 class PredictionScore:
     """Point breakdown for one prediction."""
 
-    total_points: int
-    exact_score: bool
-    correct_result: bool
+    score_points: int
     goal_difference_points: int
-    duration_points: int
-    opening_team_points: int
-    card_points: int
+    yellow_card_points: int
+    red_card_points: int
+    kick_off_team_points: int
+    first_scoring_team_points: int
+    goal_in_first_half_points: int
+    match_duration_points: int
+    total_points: int
 
 
 class LeaderboardService:
@@ -87,7 +91,6 @@ class LeaderboardService:
         """Return paginated leaderboard standings."""
         try:
             users = await self._user_repository.list_active_normal_users()
-            print(111, users)
             completed_matches = await self._match_repository.list_completed_matches()
             predictions, prediction_counts = await self._get_prediction_data()
 
@@ -115,9 +118,6 @@ class LeaderboardService:
                 limit=limit,
                 offset=offset,
                 completed_matches=len(completed_matches),
-                scored_predictions=sum(
-                    total.scored_predictions for total in ranked_totals
-                ),
             )
         except HTTPException:
             raise
@@ -166,7 +166,7 @@ class LeaderboardService:
             user.id: UserLeaderboardTotals(
                 user_id=user.id,
                 name=LeaderboardService._format_user_name(user),
-                predictions_made=prediction_counts.get(user.id, 0),
+                predicted_matches=prediction_counts.get(user.id, 0),
             )
             for user in users
         }
@@ -195,18 +195,16 @@ class LeaderboardService:
                 continue
 
             score = LeaderboardService._score_prediction(prediction)
+
+            user_totals.score_points += score.score_points,
+            user_totals.goal_difference_points += score.goal_difference_points,
+            user_totals.kick_off_team_points += score.kick_off_team_points,
+            user_totals.yellow_card_points += score.yellow_card_points,
+            user_totals.red_card_points += score.red_card_points,
+            user_totals.first_scoring_team_points += score.first_scoring_team_points,
+            user_totals.goal_in_first_half_points += score.goal_in_first_half_points,
+            user_totals.match_duration_points += score.match_duration_points,
             user_totals.total_points += score.total_points
-            user_totals.scored_predictions += 1
-            user_totals.goal_difference_points += score.goal_difference_points
-            user_totals.duration_points += score.duration_points
-            user_totals.opening_team_points += score.opening_team_points
-            user_totals.card_points += score.card_points
-
-            if score.exact_score:
-                user_totals.exact_scores += 1
-
-            if score.correct_result:
-                user_totals.correct_results += 1
 
     @staticmethod
     def _build_race_frames(
@@ -301,41 +299,50 @@ class LeaderboardService:
     def _score_prediction(prediction: Prediction) -> PredictionScore:
         """Score a prediction against its completed match."""
         match = prediction.match
-        exact_score = (
+        perfect_prediction = (
             prediction.team1_score == match.team1_score
             and prediction.team2_score == match.team2_score
         )
-        correct_result = (
+        correct_prediction = (
             LeaderboardService._score_result_sign(prediction.team1_score, prediction.team2_score)
             == LeaderboardService._score_result_sign(match.team1_score, match.team2_score)
         )
 
-        score_points = 15 if exact_score else 0
-        if not exact_score and correct_result:
+        score_points = 15 if perfect_prediction else 0
+        if not perfect_prediction and correct_prediction:
             score_points = 5
 
         goal_difference_points = LeaderboardService._score_goal_difference(
             prediction=prediction,
             match=match,
         )
-        duration_points = LeaderboardService._score_duration(prediction, match)
-        opening_team_points = LeaderboardService._score_opening_team(prediction, match)
-        card_points = LeaderboardService._score_cards(prediction, match)
+
+        kick_off_team_points = LeaderboardService._score_kick_off_team(prediction, match)
+        yellow_card_points, red_card_points = LeaderboardService._score_cards(prediction, match)
+        match_duration_points = LeaderboardService._score_duration(prediction, match)
+        first_scoring_team_points = 5 if prediction.first_scoring_team_id == match.first_scoring_team_id else 0
+        goal_in_first_half_points = 5 if prediction.is_goal_in_first_half == match.is_goal_in_first_half else 0
+
 
         return PredictionScore(
+            score_points=score_points,
+            goal_difference_points=goal_difference_points,
+            kick_off_team_points=kick_off_team_points,
+            yellow_card_points=yellow_card_points,
+            red_card_points=red_card_points,
+            first_scoring_team_points=first_scoring_team_points,
+            goal_in_first_half_points=goal_in_first_half_points,
+            match_duration_points=match_duration_points,
             total_points=(
                 score_points
                 + goal_difference_points
-                + duration_points
-                + opening_team_points
-                + card_points
-            ),
-            exact_score=exact_score,
-            correct_result=correct_result,
-            goal_difference_points=goal_difference_points,
-            duration_points=duration_points,
-            opening_team_points=opening_team_points,
-            card_points=card_points,
+                + kick_off_team_points
+                + yellow_card_points
+                + red_card_points
+                + first_scoring_team_points
+                + goal_in_first_half_points
+                + match_duration_points
+            )
         )
 
     @staticmethod
@@ -362,7 +369,7 @@ class LeaderboardService:
         if (
             match.team1_score is None
             or match.team2_score is None
-            or match.game_duration == GameDuration.PENALTY
+            or match.match_duration == GameDuration.PENALTY
         ):
             return 0
 
@@ -387,35 +394,39 @@ class LeaderboardService:
     @staticmethod
     def _score_duration(prediction: Prediction, match: Match) -> int:
         """Score game duration when the actual duration is available."""
-        if match.game_duration is None or prediction.game_duration != match.game_duration:
+        if match.match_duration is None or prediction.match_duration != match.match_duration:
             return 0
 
-        if match.game_duration == GameDuration.REGULAR:
+        if match.match_duration == GameDuration.REGULAR:
             return 5
 
-        if match.game_duration == GameDuration.EXTRA_TIME:
+        if match.match_duration == GameDuration.EXTRA_TIME:
             return 10
 
         return 15
 
     @staticmethod
-    def _score_opening_team(prediction: Prediction, match: Match) -> int:
-        """Score the opening team prediction."""
-        if match.opening_team_id is None:
+    def _score_kick_off_team(prediction: Prediction, match: Match) -> int:
+        """Score the kickoff team prediction."""
+        if match.kick_off_team_id is None:
             return 0
 
-        return 3 if prediction.opening_team_id == match.opening_team_id else 0
+        return 3 if prediction.kick_off_team_id == match.kick_off_team_id else 0
 
     @staticmethod
     def _score_cards(prediction: Prediction, match: Match) -> int:
         """Score yellow and red card predictions."""
-        return LeaderboardService._score_yellow_cards(
+        yellow_card_points = LeaderboardService._score_yellow_cards(
             predicted=prediction.yellow_card_count,
             actual=match.yellow_card_count,
-        ) + LeaderboardService._score_red_cards(
+        )
+        
+        red_card_points = LeaderboardService._score_red_cards(
             predicted=prediction.red_card_count,
             actual=match.red_card_count,
         )
+
+        return yellow_card_points, red_card_points
 
     @staticmethod
     def _score_yellow_cards(*, predicted: int, actual: int | None) -> int:
@@ -460,8 +471,8 @@ class LeaderboardService:
         """Sort users by score and high-signal tie breakers."""
         return (
             -totals.total_points,
-            -totals.exact_scores,
-            -totals.correct_results,
-            -totals.scored_predictions,
+            -totals.score_points,
+            -totals.goal_difference_points,
+            -totals.yellow_card_points,
             totals.name,
         )

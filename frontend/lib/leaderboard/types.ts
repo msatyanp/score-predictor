@@ -1,16 +1,17 @@
 export type LeaderboardEntryResponse = {
-  card_points: number;
-  correct_results: number;
-  duration_points: number;
-  exact_scores: number;
+  first_scoring_team_points: number;
   goal_difference_points: number;
+  match_duration_points: number;
   name: string;
-  opening_team_points: number;
-  predictions_made: number;
+  kick_off_team_points: number;
+  predicted_matches: number;
   rank: number;
-  scored_predictions: number;
+  red_card_points: number;
+  score_points: number;
+  scored_in_first_half_points: number;
   total_points: number;
   user_id: number;
+  yellow_card_points: number;
 };
 
 export type LeaderboardRaceUserResponse = {
@@ -35,7 +36,6 @@ export type LeaderboardResponse = {
   limit: number;
   offset: number;
   race_frames: LeaderboardRaceFrameResponse[];
-  scored_predictions: number;
   total: number;
 };
 

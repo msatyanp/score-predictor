@@ -31,6 +31,7 @@ class MatchRepository:
         offset: int = 0,
         limit: int = 50,
         match_day: int | None = None,
+        match_stage: str | None = None,
         match_locked: bool | None = None,
     ) -> list[Match]:
         """Fetch matches with optional filters and pagination."""
@@ -41,6 +42,9 @@ class MatchRepository:
 
         if match_day is not None:
             statement = statement.where(Match.match_day == match_day)
+
+        if match_stage is not None:
+            statement = statement.where(Match.match_stage == match_stage)
 
         if match_locked is not None:
             statement = statement.where(Match.match_locked == match_locked)
@@ -56,6 +60,7 @@ class MatchRepository:
         self,
         *,
         match_day: int | None = None,
+        match_stage: str | None = None,
         match_locked: bool | None = None,
     ) -> int:
         """Count matches using the same filters as list_matches."""
@@ -63,6 +68,9 @@ class MatchRepository:
 
         if match_day is not None:
             statement = statement.where(Match.match_day == match_day)
+
+        if match_stage is not None:
+            statement = statement.where(Match.match_stage == match_stage)
 
         if match_locked is not None:
             statement = statement.where(Match.match_locked == match_locked)

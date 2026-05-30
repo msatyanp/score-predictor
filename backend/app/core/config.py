@@ -1,7 +1,6 @@
 """Application configuration loaded from environment variables."""
 
-from pydantic_settings import SettingsConfigDict
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -19,6 +18,8 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_EXPIRE_MINUTES: int = 30
     JWT_REFRESH_EXPIRE_MINUTES: int = 10080  # 7 days
+
+    API_BASE_PATH: str = "/api/v1"
 
     # ── CORS ─────────────────────────────────────────────────────
     CORS_ORIGINS: list[str] = ["http://localhost:3000"]

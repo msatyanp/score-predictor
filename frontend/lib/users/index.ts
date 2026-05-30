@@ -6,7 +6,7 @@ export {
   userService,
 } from "@/lib/users/user-service";
 export type {
-  ListAdminUsersParams,
+  ListUsersParams,
   UserCreate,
   UserListResponse,
   UserResponse,

@@ -18,7 +18,7 @@ const adminQueues = [
 ] as const;
 
 
-export default function AdminPage() {
+const AdminPage = () => {
 
   const [teams, setTeams] = useState<TeamResponse[]>([]);
   const [matches, setMatches] = useState<MatchResponse[]>([]);
@@ -30,7 +30,7 @@ export default function AdminPage() {
   useEffect(() => {
     let isMounted = true;
 
-    async function loadInitialPageData() {
+    const loadInitialPageData = async () => {
       setIsLoading(true);
       setLoadError(null);
 
@@ -57,7 +57,7 @@ export default function AdminPage() {
           setIsLoading(false);
         }
       }
-    }
+    };
 
     void loadInitialPageData();
 
@@ -92,7 +92,7 @@ export default function AdminPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-2">
         <section className="grid gap-4 md:grid-cols-1">
           {adminMetrics.map((metric) => (
             <MetricCard key={metric.label} metric={metric} />
@@ -114,4 +114,6 @@ export default function AdminPage() {
       </section>
     </main>
   );
-}
+};
+
+export default AdminPage;

@@ -7,7 +7,7 @@ import type {
   PredictionUpdate,
 } from "@/lib/predictions/types";
 
-function toQueryString(params: ListCurrentUserPredictionsParams): string {
+const toQueryString = (params: ListCurrentUserPredictionsParams): string => {
   const searchParams = new URLSearchParams();
 
   if (params.offset !== undefined) {
@@ -23,22 +23,22 @@ function toQueryString(params: ListCurrentUserPredictionsParams): string {
   }
 
   return searchParams.toString();
-}
+};
 
-export async function listCurrentUserPredictions(
+export const listCurrentUserPredictions = async (
   params: ListCurrentUserPredictionsParams = {},
-): Promise<PredictionListResponse> {
+): Promise<PredictionListResponse> => {
   const queryString = toQueryString(params);
   const path = queryString ? `/predictions/me?${queryString}` : "/predictions/me";
 
   return authenticatedApiFetch<PredictionListResponse>(path, {
     method: "GET",
   });
-}
+};
 
-export async function createPrediction(
+export const createPrediction = async (
   data: PredictionCreate,
-): Promise<PredictionResponse> {
+): Promise<PredictionResponse> => {
   return authenticatedApiFetch<PredictionResponse, PredictionCreate>(
     "/predictions",
     {
@@ -46,12 +46,12 @@ export async function createPrediction(
       method: "POST",
     },
   );
-}
+};
 
-export async function updatePrediction(
+export const updatePrediction = async (
   predictionId: number,
   data: PredictionUpdate,
-): Promise<PredictionResponse> {
+): Promise<PredictionResponse> => {
   return authenticatedApiFetch<PredictionResponse, PredictionUpdate>(
     `/predictions/${predictionId}`,
     {
@@ -59,7 +59,7 @@ export async function updatePrediction(
       method: "PUT",
     },
   );
-}
+};
 
 export const predictionService = {
   createPrediction,

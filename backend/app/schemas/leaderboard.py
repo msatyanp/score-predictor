@@ -9,15 +9,16 @@ class LeaderboardEntryResponse(BaseModel):
     rank: int = Field(..., gt=0)
     user_id: int
     name: str
-    total_points: int
-    predictions_made: int = Field(..., ge=0)
-    scored_predictions: int = Field(..., ge=0)
-    exact_scores: int = Field(..., ge=0)
-    correct_results: int = Field(..., ge=0)
+    score_points: int = Field(..., ge=0)
     goal_difference_points: int
-    duration_points: int
-    opening_team_points: int
-    card_points: int
+    yellow_card_points: int
+    red_card_points: int
+    kick_off_team_points: int
+    first_scoring_team_points: int
+    scored_in_first_half_points: int
+    match_duration_points: int
+    total_points: int
+    predicted_matches: int = Field(..., ge=0)
 
 
 class LeaderboardRaceUserResponse(BaseModel):
@@ -49,4 +50,3 @@ class LeaderboardResponse(BaseModel):
     limit: int = Field(..., ge=1)
     offset: int = Field(..., ge=0)
     completed_matches: int = Field(..., ge=0)
-    scored_predictions: int = Field(..., ge=0)

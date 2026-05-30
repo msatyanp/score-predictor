@@ -25,20 +25,20 @@ const initialState: SignupFormState = {
   password: "",
 };
 
-export function SignupForm() {
+export const SignupForm = () => {
   const router = useRouter();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [formState, setFormState] = useState<SignupFormState>(initialState);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function updateField(field: keyof SignupFormState, value: string) {
+  const updateField = (field: keyof SignupFormState, value: string) => {
     setFormState((current) => ({
       ...current,
       [field]: value,
     }));
-  }
+  };
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setErrorMessage(null);
     setIsSubmitting(true);
@@ -61,12 +61,12 @@ export function SignupForm() {
     } finally {
       setIsSubmitting(false);
     }
-  }
+  };
 
   return (
     <>
-      <form className="mt-8 grid gap-5 sm:grid-cols-2" onSubmit={handleSubmit}>
-        <label className="block">
+      <form className="mt-8 grid gap-5 sm:grid-cols-6" onSubmit={handleSubmit}>
+        <label className="block col-span-2">
           <span className="text-sm font-medium text-zinc-700">First name</span>
           <input
             autoComplete="given-name"
@@ -78,7 +78,18 @@ export function SignupForm() {
             className="mt-2 h-11 w-full rounded-md border border-zinc-300 px-3 text-zinc-950 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
           />
         </label>
-        <label className="block">
+        <label className="block col-span-2">
+          <span className="text-sm font-medium text-zinc-700">Middle name</span>
+          <input
+            autoComplete="additional-name"
+            name="middle_name"
+            type="text"
+            value={formState.middleName}
+            onChange={(event) => updateField("middleName", event.target.value)}
+            className="mt-2 h-11 w-full rounded-md border border-zinc-300 px-3 text-zinc-950 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
+          />
+        </label>
+        <label className="block col-span-2">
           <span className="text-sm font-medium text-zinc-700">Last name</span>
           <input
             autoComplete="family-name"
@@ -90,18 +101,7 @@ export function SignupForm() {
             className="mt-2 h-11 w-full rounded-md border border-zinc-300 px-3 text-zinc-950 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
           />
         </label>
-        <label className="block">
-          <span className="text-sm font-medium text-zinc-700">Middle name</span>
-          <input
-            autoComplete="additional-name"
-            name="middle_name"
-            type="text"
-            value={formState.middleName}
-            onChange={(event) => updateField("middleName", event.target.value)}
-            className="mt-2 h-11 w-full rounded-md border border-zinc-300 px-3 text-zinc-950 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
-          />
-        </label>
-        <label className="block">
+        <label className="block col-span-3">
           <span className="text-sm font-medium text-zinc-700">Mobile number</span>
           <input
             autoComplete="tel"
@@ -113,7 +113,7 @@ export function SignupForm() {
             className="mt-2 h-11 w-full rounded-md border border-zinc-300 px-3 text-zinc-950 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
           />
         </label>
-        <label className="block sm:col-span-2">
+        <label className="block col-span-3">
           <span className="text-sm font-medium text-zinc-700">Email</span>
           <input
             autoComplete="email"
@@ -125,12 +125,23 @@ export function SignupForm() {
             className="mt-2 h-11 w-full rounded-md border border-zinc-300 px-3 text-zinc-950 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
           />
         </label>
-        <label className="block sm:col-span-2">
+        <label className="block col-span-3">
           <span className="text-sm font-medium text-zinc-700">Password</span>
           <input
             autoComplete="new-password"
             minLength={8}
             name="password"
+            required
+            type="password"
+            className="mt-2 h-11 w-full rounded-md border border-zinc-300 px-3 text-zinc-950 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
+          />
+        </label>
+        <label className="block col-span-3">
+          <span className="text-sm font-medium text-zinc-700">Confirm Password</span>
+          <input
+            autoComplete="confirm-password"
+            minLength={8}
+            name="confirm_password"
             required
             type="password"
             value={formState.password}
@@ -148,18 +159,20 @@ export function SignupForm() {
           </p>
         ) : null}
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="inline-flex h-11 items-center justify-center rounded-md bg-zinc-950 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400 sm:col-span-2"
-        >
-          {isSubmitting ? "Creating account..." : "Create account"}
-        </button>
+        <label className="flex col-span-6 justify-center">
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="inline-flex w-full h-11 mt-10 items-center cursor-pointer justify-center rounded-md bg-zinc-950 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400 sm:col-span-2"
+          >
+            {isSubmitting ? "Creating account..." : "Create Account"}
+          </button>
+        </label>
       </form>
       <p className="mt-6 text-sm text-zinc-600">
         Already registered?{" "}
         <Link href="/login" className="font-semibold text-emerald-700">
-          Sign in
+          Log in
         </Link>
       </p>
     </>

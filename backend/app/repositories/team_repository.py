@@ -31,7 +31,7 @@ class TeamRepository:
     async def list_all_teams(self) -> list[Team]:
         """Fetch all teams ordered for group table display."""
         result = await self._db.execute(
-            select(Team).order_by(Team.group.asc(), Team.name.asc(), Team.id.asc()),
+            select(Team).where(Team.name != "TBD-H").where(Team.name != "TBD-A").order_by(Team.group.asc(), Team.name.asc(), Team.id.asc()),
         )
         return list(result.scalars().all())
 
@@ -60,6 +60,8 @@ class TeamRepository:
     ) -> list[Team]:
         """Fetch teams with optional filters and pagination."""
         statement = select(Team)
+
+        statement = statement.where(Team.name != "TBD-H").where(Team.name != "TBD-A")
 
         if group is not None:
             statement = statement.where(Team.group == group)

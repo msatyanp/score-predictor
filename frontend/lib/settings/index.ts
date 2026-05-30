@@ -1,12 +1,13 @@
 export {
   createSetting,
   deleteSetting,
-  listAdminSettings,
+  listSetting,
+  listRules,
   settingService,
   updateSetting,
 } from "@/lib/settings/setting-service";
 export type {
-  ListAdminSettingsParams,
+  ListSettingsParams,
   SettingCreate,
   SettingListResponse,
   SettingResponse,

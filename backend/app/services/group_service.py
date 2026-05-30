@@ -28,6 +28,7 @@ class StandingTotals:
     team: str
     fifa_code: str
     flag_url: str
+    fifa_rank: int = 0
     played: int = 0
     won: int = 0
     drawn: int = 0
@@ -47,6 +48,7 @@ class StandingTotals:
             team_id=self.team_id,
             team=self.team,
             fifa_code=self.fifa_code,
+            fifa_rank=self.fifa_rank,
             flag_url=self.flag_url,
             played=self.played,
             won=self.won,
@@ -115,6 +117,7 @@ class GroupService:
                 team_id=team.id,
                 team=team.name,
                 fifa_code=team.fifa_code,
+                fifa_rank=team.fifa_rank,
                 flag_url=TeamService.flag_base_url + team.fifa_code,
             )
 

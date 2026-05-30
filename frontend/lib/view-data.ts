@@ -1,7 +1,9 @@
 export type MatchCard = {
+  awayFlag: string | null;
   awayTeam: string;
   day: string;
   group: string;
+  homeFlag: string | null;
   homeTeam: string;
   id: number;
   kickOff: string;
@@ -62,9 +64,9 @@ export const ruleBands: RuleBand[] = [
     items: ["5 points for 90 minutes", "10 points for 120 minutes", "15 points for penalty shootout"],
   },
   {
-    title: "Cards and opening team",
+    title: "Cards and kickoff team",
     items: [
-      "3 points for correct opening team",
+      "3 points for correct kickoff team",
       "Up to 5 points for yellow cards",
       "Red card scoring ranges from -2 to 10 points",
     ],

@@ -4,7 +4,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.models.match import GameDuration
+from app.models.match import GameDuration, MatchStage
 
 
 class MatchBase(BaseModel):
@@ -16,10 +16,11 @@ class MatchBase(BaseModel):
     team2_score: int | None = Field(default=None, ge=0)
     yellow_card_count: int | None = Field(default=None, ge=0)
     red_card_count: int | None = Field(default=None, ge=0)
-    opening_team_id: int | None = Field(default=None, gt=0)
+    kick_off_team_id: int | None = Field(default=None, gt=0)
     first_scoring_team_id: int | None = Field(default=None, gt=0)
     is_goal_in_first_half: bool | None = None
-    game_duration: GameDuration | None = None
+    match_duration: GameDuration | None = None
+    match_stage: MatchStage | None = None
     match_datetime: datetime
     match_locked: bool = False
     match_reminder_sent: bool = False
@@ -32,11 +33,11 @@ class MatchBase(BaseModel):
         if self.team1_id == self.team2_id:
             raise ValueError("team1_id and team2_id must be different")
 
-        if self.opening_team_id is not None and self.opening_team_id not in {
+        if self.kick_off_team_id is not None and self.kick_off_team_id not in {
             self.team1_id,
             self.team2_id,
         }:
-            raise ValueError("opening_team_id must match one of the match teams")
+            raise ValueError("kick_off_team_id must match one of the match teams")
 
         if (
             self.first_scoring_team_id is not None
@@ -60,10 +61,11 @@ class MatchUpdate(BaseModel):
     team2_score: int | None = Field(default=None, ge=0)
     yellow_card_count: int | None = Field(default=None, ge=0)
     red_card_count: int | None = Field(default=None, ge=0)
-    opening_team_id: int | None = Field(default=None, gt=0)
+    kick_off_team_id: int | None = Field(default=None, gt=0)
     first_scoring_team_id: int | None = Field(default=None, gt=0)
     is_goal_in_first_half: bool | None = None
-    game_duration: GameDuration | None = None
+    match_duration: GameDuration | None = None
+    match_stage: MatchStage | None = None
     match_datetime: datetime | None = None
     match_locked: bool | None = None
     match_reminder_sent: bool | None = None
@@ -83,10 +85,10 @@ class MatchUpdate(BaseModel):
         if (
             self.team1_id is not None
             and self.team2_id is not None
-            and self.opening_team_id is not None
-            and self.opening_team_id not in {self.team1_id, self.team2_id}
+            and self.kick_off_team_id is not None
+            and self.kick_off_team_id not in {self.team1_id, self.team2_id}
         ):
-            raise ValueError("opening_team_id must match one of the match teams")
+            raise ValueError("kick_off_team_id must match one of the match teams")
 
         if (
             self.team1_id is not None
@@ -106,9 +108,11 @@ class MatchResponse(MatchBase):
     created_at: datetime
     updated_at: datetime
     team1_name: str
-    team2_name: str
     team1_group: str
+    team1_flag_url: str
+    team2_name: str
     team2_group: str
+    team2_flag_url: str
 
     model_config = ConfigDict(from_attributes=True)
 

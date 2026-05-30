@@ -16,6 +16,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
+from app.models.team import Team
 
 
 class GameDuration(str, enum.Enum):
@@ -25,8 +26,18 @@ class GameDuration(str, enum.Enum):
     EXTRA_TIME = "120"
     PENALTY = "PENALTY"
 
+class MatchStage(str, enum.Enum):
+    """Possible stages of a football match."""
 
-def game_duration_values(enum_type: type[GameDuration]) -> list[str]:
+    GROUP = "GROUP"
+    R32 = "R32"
+    R16 = "R16"
+    QUARTER_FINAL = "QF"
+    SF = "SF"
+    F = "F"
+
+
+def match_duration_values(enum_type: type[GameDuration]) -> list[str]:
     """Persist the public enum values instead of Python enum member names."""
     return [duration.value for duration in enum_type]
 
@@ -36,7 +47,7 @@ class Match(TimestampMixin, Base):
 
     Fields derived from ARCHITEXTURE.md:
         id, team1_score, team2_score, yellow_card_count, red_card_count,
-        opening_team_id, game_duration, match_datetime, match_locked,
+        kick_off_team_id, match_duration, match_datetime, match_locked,
         match_reminder_sent, match_day, venue
 
     Additional fields:
@@ -88,8 +99,8 @@ class Match(TimestampMixin, Base):
         default=None,
     )
 
-    # ── Opening Team ─────────────────────────────────────────────
-    opening_team_id: Mapped[int | None] = mapped_column(
+    # ── Kick off Team ─────────────────────────────────────────────
+    kick_off_team_id: Mapped[int | None] = mapped_column(
         ForeignKey("teams.id"),
         nullable=True,
         default=None,
@@ -106,13 +117,27 @@ class Match(TimestampMixin, Base):
     )
 
     # ── Game Duration ────────────────────────────────────────────
-    game_duration: Mapped[GameDuration | None] = mapped_column(
+    match_duration: Mapped[GameDuration | None] = mapped_column(
         Enum(
             GameDuration,
-            name="game_duration",
+            name="match_duration",
             native_enum=False,
             length=10,
-            values_callable=game_duration_values,
+            values_callable=match_duration_values,
+            validate_strings=True,
+        ),
+        nullable=True,
+        default=None,
+    )
+
+    # ── Match Stage ────────────────────────────────────────────
+    match_stage: Mapped[str | None] = mapped_column(
+        Enum(
+            MatchStage,
+            name="match_stage",
+            native_enum=False,
+            length=20,
+            values_callable=match_duration_values,
             validate_strings=True,
         ),
         nullable=True,
@@ -149,22 +174,22 @@ class Match(TimestampMixin, Base):
     )
 
     # ── Relationships ────────────────────────────────────────────
-    team1: Mapped["Team"] = relationship(  # noqa: F821
+    team1: Mapped["Team"] = relationship(
         "Team",
         foreign_keys=[team1_id],
         lazy="selectin",
     )
-    team2: Mapped["Team"] = relationship(  # noqa: F821
+    team2: Mapped["Team"] = relationship(
         "Team",
         foreign_keys=[team2_id],
         lazy="selectin",
     )
-    opening_team: Mapped["Team | None"] = relationship(  # noqa: F821
+    kick_off_team: Mapped["Team | None"] = relationship(
         "Team",
-        foreign_keys=[opening_team_id],
+        foreign_keys=[kick_off_team_id],
         lazy="selectin",
     )
-    first_scoring_team: Mapped["Team | None"] = relationship(  # noqa: F821
+    first_scoring_team: Mapped["Team | None"] = relationship(
         "Team",
         foreign_keys=[first_scoring_team_id],
         lazy="selectin",
@@ -191,10 +216,10 @@ class Match(TimestampMixin, Base):
         ),
         CheckConstraint("match_day > 0", name="ck_matches_match_day_positive"),
         CheckConstraint(
-            "opening_team_id IS NULL "
-            "OR opening_team_id = team1_id "
-            "OR opening_team_id = team2_id",
-            name="ck_matches_opening_team_participant",
+            "kick_off_team_id IS NULL "
+            "OR kick_off_team_id = team1_id "
+            "OR kick_off_team_id = team2_id",
+            name="ck_matches_kick_off_team_participant",
         ),
         CheckConstraint(
             "first_scoring_team_id IS NULL "
@@ -208,7 +233,7 @@ class Match(TimestampMixin, Base):
         Index("ix_matches_locked_datetime", "match_locked", "match_datetime"),
         Index("ix_matches_team1_id", "team1_id"),
         Index("ix_matches_team2_id", "team2_id"),
-        Index("ix_matches_opening_team_id", "opening_team_id"),
+        Index("ix_matches_kick_off_team_id", "kick_off_team_id"),
         Index("ix_matches_first_scoring_team_id", "first_scoring_team_id"),
     )
 

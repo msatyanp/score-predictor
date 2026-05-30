@@ -7,17 +7,18 @@ import { getErrorMessage } from "@/lib/forms/error-message";
 import {
   createSetting,
   deleteSetting,
-  listAdminSettings,
+  listSetting,
   updateSetting,
 } from "@/lib/settings";
 import type { SettingCreate, SettingResponse } from "@/lib/settings";
 
 const emptyFormState: SettingCreate = {
   name: "",
+  friendly_name: "",
   value: "",
 };
 
-export default function AdminSettingsPage() {
+const AdminSettingsPage = () => {
   const [settings, setSettings] = useState<SettingResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -33,12 +34,12 @@ export default function AdminSettingsPage() {
   useEffect(() => {
     let isMounted = true;
 
-    async function loadSettings() {
+    const loadSettings = async () => {
       setIsLoading(true);
       setLoadError(null);
 
       try {
-        const settingList = await listAdminSettings({ limit: 100 });
+        const settingList = await listSetting({ limit: 100 });
         if (isMounted) {
           setSettings(settingList.items);
         }
@@ -51,7 +52,7 @@ export default function AdminSettingsPage() {
           setIsLoading(false);
         }
       }
-    }
+    };
 
     void loadSettings();
 
@@ -60,32 +61,33 @@ export default function AdminSettingsPage() {
     };
   }, []);
 
-  function handleOpenCreateModal() {
+  const handleOpenCreateModal = () => {
     setEditingSettingId(null);
     setFormState(emptyFormState);
     setFormError(null);
     setIsModalOpen(true);
-  }
+  };
 
-  function handleOpenEditModal(setting: SettingResponse) {
+  const handleOpenEditModal = (setting: SettingResponse) => {
     setEditingSettingId(setting.id);
     setFormState({
       name: setting.name,
+      friendly_name: setting.friendly_name,
       value: setting.value,
     });
     setFormError(null);
     setIsModalOpen(true);
-  }
+  };
 
-  function handleCloseModal() {
+  const handleCloseModal = () => {
     setIsModalOpen(false);
-  }
+  };
 
-  function updateField(field: keyof SettingCreate, value: string) {
+  const updateField = (field: keyof SettingCreate, value: string) => {
     setFormState((prev) => ({ ...prev, [field]: value }));
-  }
+  };
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setFormError(null);
     setIsSubmitting(true);
@@ -109,9 +111,9 @@ export default function AdminSettingsPage() {
     } finally {
       setIsSubmitting(false);
     }
-  }
+  };
 
-  async function handleDelete(setting: SettingResponse) {
+  const handleDelete = async (setting: SettingResponse) => {
     if (!window.confirm(`Delete setting ${setting.name}?`)) {
       return;
     }
@@ -125,14 +127,14 @@ export default function AdminSettingsPage() {
     } finally {
       setIsDeletingId(null);
     }
-  }
+  };
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
       <section className="flex flex-wrap items-center justify-between gap-3">
         <div><h2>App Configurations</h2></div>
         <button
-          className="inline-flex h-10 items-center rounded-md bg-zinc-950 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800"
+          className="inline-flex h-10 items-center cursor-pointer rounded-md bg-zinc-950 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800"
           type="button"
           onClick={handleOpenCreateModal}
         >
@@ -152,6 +154,7 @@ export default function AdminSettingsPage() {
             <thead className="bg-zinc-50 text-left text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500">
               <tr>
                 <th className="px-5 py-3">Name</th>
+                <th className="px-5 py-3">Friendly Name</th>
                 <th className="px-5 py-3">Value</th>
                 <th className="px-5 py-3 text-right">Actions</th>
               </tr>
@@ -169,19 +172,20 @@ export default function AdminSettingsPage() {
                     <td className="px-5 py-4 font-medium text-zinc-950">
                       {setting.name}
                     </td>
+                    <td className="px-5 py-4 text-zinc-700">{setting.friendly_name}</td>
                     <td className="px-5 py-4 text-zinc-700">{setting.value}</td>
                     <td className="px-5 py-4 text-right">
                       <div className="flex justify-end gap-3">
                         <button
                           type="button"
-                          className="font-semibold text-emerald-700 hover:text-emerald-900"
+                          className="font-semibold text-emerald-700 cursor-pointer hover:text-emerald-900"
                           onClick={() => handleOpenEditModal(setting)}
                         >
                           Edit
                         </button>
                         <button
                           type="button"
-                          className="font-semibold text-rose-700 hover:text-rose-900 disabled:text-zinc-400"
+                          className="font-semibold text-rose-700 cursor-pointer hover:text-rose-900 disabled:text-zinc-400"
                           disabled={isDeletingId === setting.id}
                           onClick={() => void handleDelete(setting)}
                         >
@@ -193,7 +197,7 @@ export default function AdminSettingsPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={3} className="px-5 py-8 text-center text-zinc-500">
+                  <td colSpan={4} className="px-5 py-8 text-center text-zinc-500">
                     No settings found.
                   </td>
                 </tr>
@@ -220,13 +224,23 @@ export default function AdminSettingsPage() {
             />
           </label>
           <label className="block">
-            <span className="text-sm font-medium text-zinc-700">Value</span>
+            <span className="text-sm font-medium text-zinc-700">Friendly Name</span>
             <input
               type="text"
               required
+              value={formState.friendly_name}
+              onChange={(e) => updateField("friendly_name", e.target.value)}
+              className="mt-2 h-11 w-full rounded-md border border-zinc-300 px-3 text-zinc-950 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
+            />
+          </label>
+          <label className="block">
+            <span className="text-sm font-medium text-zinc-700">Value</span>
+            <textarea
+              rows={4}
+              required
               value={formState.value}
               onChange={(e) => updateField("value", e.target.value)}
-              className="mt-2 h-11 w-full rounded-md border border-zinc-300 px-3 text-zinc-950 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
+              className="mt-2 w-full rounded-md border border-zinc-300 px-3 text-zinc-950 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
             />
           </label>
 
@@ -240,14 +254,14 @@ export default function AdminSettingsPage() {
             <button
               type="button"
               onClick={handleCloseModal}
-              className="inline-flex h-11 items-center justify-center rounded-md border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50"
+              className="inline-flex h-11 items-center justify-center rounded-md border cursor-pointer border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex h-11 items-center justify-center rounded-md bg-zinc-950 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
+              className="inline-flex h-11 items-center justify-center cursor-pointer rounded-md bg-zinc-950 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
             >
               {isSubmitting ? "Saving..." : "Save setting"}
             </button>
@@ -256,4 +270,6 @@ export default function AdminSettingsPage() {
       </Modal>
     </main>
   );
-}
+};
+
+export default AdminSettingsPage;

@@ -26,7 +26,7 @@ const emptyFormState: UserCreate = {
   is_active: true,
 };
 
-export default function AdminUsersPage() {
+const AdminUsersPage = () => {
   const [users, setUsers] = useState<UserResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -42,7 +42,7 @@ export default function AdminUsersPage() {
   useEffect(() => {
     let isMounted = true;
 
-    async function loadUsers() {
+    const loadUsers = async () => {
       setIsLoading(true);
       setLoadError(null);
 
@@ -60,7 +60,7 @@ export default function AdminUsersPage() {
           setIsLoading(false);
         }
       }
-    }
+    };
 
     void loadUsers();
 
@@ -69,14 +69,14 @@ export default function AdminUsersPage() {
     };
   }, []);
 
-  function handleOpenCreateModal() {
+  const handleOpenCreateModal = () => {
     setEditingUserId(null);
     setFormState(emptyFormState);
     setFormError(null);
     setIsModalOpen(true);
-  }
+  };
 
-  function handleOpenEditModal(user: UserResponse) {
+  const handleOpenEditModal = (user: UserResponse) => {
     setEditingUserId(user.id);
     setFormState({
       email: user.email,
@@ -90,17 +90,17 @@ export default function AdminUsersPage() {
     });
     setFormError(null);
     setIsModalOpen(true);
-  }
+  };
 
-  function handleCloseModal() {
+  const handleCloseModal = () => {
     setIsModalOpen(false);
-  }
+  };
 
-  function updateField(field: keyof UserCreate, value: string | boolean) {
+  const updateField = (field: keyof UserCreate, value: string | boolean) => {
     setFormState((prev) => ({ ...prev, [field]: value }));
-  }
+  };
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setFormError(null);
     setIsSubmitting(true);
@@ -130,9 +130,9 @@ export default function AdminUsersPage() {
     } finally {
       setIsSubmitting(false);
     }
-  }
+  };
 
-  async function handleDelete(user: UserResponse) {
+  const handleDelete = async (user: UserResponse) => {
     if (!window.confirm(`Delete user ${user.email}?`)) {
       return;
     }
@@ -146,14 +146,14 @@ export default function AdminUsersPage() {
     } finally {
       setIsDeletingId(null);
     }
-  }
+  };
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
       <section className="flex flex-wrap items-center justify-between gap-3">
         <div><h2>Active Users</h2></div>
         <button
-          className="inline-flex h-10 items-center rounded-md bg-zinc-950 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800"
+          className="inline-flex h-10 items-center cursor-pointer rounded-md bg-zinc-950 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800"
           type="button"
           onClick={handleOpenCreateModal}
         >
@@ -209,14 +209,14 @@ export default function AdminUsersPage() {
                       <div className="flex justify-end gap-3">
                         <button
                           type="button"
-                          className="font-semibold text-emerald-700 hover:text-emerald-900"
+                          className="font-semibold cursor-pointer text-emerald-700 hover:text-emerald-900"
                           onClick={() => handleOpenEditModal(user)}
                         >
                           Edit
                         </button>
                         <button
                           type="button"
-                          className="font-semibold text-rose-700 hover:text-rose-900 disabled:text-zinc-400"
+                          className="font-semibold cursor-pointer text-rose-700 hover:text-rose-900 disabled:text-zinc-400"
                           disabled={isDeletingId === user.id}
                           onClick={() => void handleDelete(user)}
                         >
@@ -247,6 +247,7 @@ export default function AdminUsersPage() {
           <label className="block">
             <span className="text-sm font-medium text-zinc-700">Email</span>
             <input
+              autoComplete="email"
               type="email"
               required
               value={formState.email}
@@ -258,6 +259,7 @@ export default function AdminUsersPage() {
             <label className="block">
               <span className="text-sm font-medium text-zinc-700">First name</span>
               <input
+                autoComplete="name"
                 type="text"
                 required
                 value={formState.first_name}
@@ -268,6 +270,7 @@ export default function AdminUsersPage() {
             <label className="block">
               <span className="text-sm font-medium text-zinc-700">Middle name</span>
               <input
+                autoComplete="middle-name"
                 type="text"
                 value={formState.middle_name || ""}
                 onChange={(e) => updateField("middle_name", e.target.value)}
@@ -277,6 +280,7 @@ export default function AdminUsersPage() {
             <label className="block">
               <span className="text-sm font-medium text-zinc-700">Last name</span>
               <input
+                autoComplete="family-name"
                 type="text"
                 required
                 value={formState.last_name}
@@ -287,6 +291,7 @@ export default function AdminUsersPage() {
             <label className="block">
               <span className="text-sm font-medium text-zinc-700">Mobile no</span>
               <input
+                autoComplete="tel"
                 type="text"
                 required
                 value={formState.mobile_no}
@@ -314,6 +319,7 @@ export default function AdminUsersPage() {
                 {editingUserId ? "New Password (optional)" : "Password"}
               </span>
               <input
+                autoComplete="new-password"
                 type="password"
                 required={!editingUserId}
                 minLength={8}
@@ -325,6 +331,7 @@ export default function AdminUsersPage() {
           </div>
           <label className="flex items-center gap-3 rounded-md border border-zinc-200 px-3 py-3 text-sm font-medium text-zinc-700">
             <input
+              autoComplete=""
               type="checkbox"
               checked={formState.is_active}
               onChange={(e) => updateField("is_active", e.target.checked)}
@@ -343,14 +350,14 @@ export default function AdminUsersPage() {
             <button
               type="button"
               onClick={handleCloseModal}
-              className="inline-flex h-11 items-center justify-center rounded-md border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50"
+              className="inline-flex h-11 items-center justify-center cursor-pointer rounded-md border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex h-11 items-center justify-center rounded-md bg-zinc-950 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
+              className="inline-flex h-11 items-center justify-center cursor-pointer rounded-md bg-zinc-950 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
             >
               {isSubmitting ? "Saving..." : "Save user"}
             </button>
@@ -359,4 +366,6 @@ export default function AdminUsersPage() {
       </Modal>
     </main>
   );
-}
+};
+
+export default AdminUsersPage;

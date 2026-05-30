@@ -20,8 +20,8 @@ from app.services.leaderboard_service import LeaderboardService
 from app.services.user_service import UserService
 
 router = APIRouter(prefix="/users", tags=["Users"])
-leaderboard_router = APIRouter(tags=["Leaderboard"])
-admin_router = APIRouter(prefix="/admin/users", tags=["Admin Users"])
+leaderboard_router = APIRouter(prefix="/leaderboard", tags=["Leaderboard"])
+admin_router = APIRouter(prefix="/admin/users", tags=["Users"])
 
 
 @router.get(
@@ -54,7 +54,7 @@ async def update_current_user_profile(
 
 
 @leaderboard_router.get(
-    "/leaderboard",
+    "/",
     response_model=LeaderboardResponse,
     summary="Get leaderboard",
 )

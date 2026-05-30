@@ -9,11 +9,11 @@ CREATE TABLE predictions (
     yellow_card_count INT NOT NULL,
     red_card_count INT NOT NULL,
 
-    opening_team_id INT NOT NULL,
+    kick_off_team_id INT NOT NULL,
     first_scoring_team_id INT NULL DEFAULT NULL,
     is_goal_in_first_half BOOLEAN NULL DEFAULT NULL,
 
-    game_duration ENUM('90', '120', 'PENALTY') NOT NULL,
+    match_duration ENUM('90', '120', 'PENALTY') NOT NULL,
 
     predicted_datetime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP,
@@ -32,8 +32,8 @@ CREATE TABLE predictions (
         FOREIGN KEY (match_id)
         REFERENCES matches(id),
 
-    CONSTRAINT fk_predictions_opening_team
-        FOREIGN KEY (opening_team_id)
+    CONSTRAINT fk_predictions_kick_off_team
+        FOREIGN KEY (kick_off_team_id)
         REFERENCES teams(id),
 
     CONSTRAINT fk_predictions_first_scoring_team
@@ -60,7 +60,7 @@ CREATE TABLE predictions (
     -- Indexes
     INDEX ix_predictions_user_id (user_id),
     INDEX ix_predictions_match_id (match_id),
-    INDEX ix_predictions_opening_team_id (opening_team_id),
+    INDEX ix_predictions_kick_off_team_id (kick_off_team_id),
     INDEX ix_predictions_first_scoring_team_id (first_scoring_team_id),
     INDEX ix_predictions_predicted_datetime (predicted_datetime)
 

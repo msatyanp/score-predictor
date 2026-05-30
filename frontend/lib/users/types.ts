@@ -33,7 +33,7 @@ export type UserCreate = {
 
 export type UserUpdate = Partial<UserCreate>;
 
-export type ListAdminUsersParams = {
+export type ListUsersParams = {
   is_active?: boolean;
   limit?: number;
   offset?: number;

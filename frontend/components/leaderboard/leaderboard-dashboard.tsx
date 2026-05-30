@@ -14,7 +14,6 @@ import type {
   LeaderboardRaceUserResponse,
   LeaderboardResponse,
 } from "@/lib/leaderboard";
-import type { Metric } from "@/lib/view-data";
 
 function getLoadErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
@@ -22,7 +21,7 @@ function getLoadErrorMessage(error: unknown): string {
   }
 
   if (error instanceof MissingAuthTokenError) {
-    return "Please sign in before viewing the leaderboard.";
+    return "Please log in before viewing the leaderboard.";
   }
 
   if (error instanceof Error && error.message.trim()) {
@@ -56,33 +55,6 @@ function getPointsTone(points: number): "green" | "red" | "zinc" {
   return "zinc";
 }
 
-function buildMetrics(leaderboard: LeaderboardResponse): Metric[] {
-  const topScore = leaderboard.items[0]?.total_points ?? 0;
-
-  return [
-    {
-      label: "Ranked users",
-      value: formatNumber(leaderboard.total),
-      tone: "blue",
-    },
-    {
-      label: "Completed matches",
-      value: formatNumber(leaderboard.completed_matches),
-      tone: "green",
-    },
-    {
-      label: "Scored predictions",
-      value: formatNumber(leaderboard.scored_predictions),
-      tone: "amber",
-    },
-    {
-      label: "Top score",
-      value: formatNumber(topScore),
-      tone: topScore < 0 ? "red" : "green",
-    },
-  ];
-}
-
 function getFrameMaxPoints(frame: LeaderboardRaceFrameResponse): number {
   return Math.max(
     1,
@@ -90,23 +62,28 @@ function getFrameMaxPoints(frame: LeaderboardRaceFrameResponse): number {
   );
 }
 
-function LeaderboardRow({ row }: { row: LeaderboardEntryResponse }) {
+function LeaderboardRow({ row, completedMatches }: { row: LeaderboardEntryResponse, completedMatches: number }) {
   return (
     <tr>
       <td className="px-5 py-4 font-semibold text-zinc-950">#{row.rank}</td>
       <td className="px-5 py-4 font-medium text-zinc-950">{row.name}</td>
-      <td className="px-5 py-4 text-zinc-700">{row.exact_scores}</td>
-      <td className="px-5 py-4 text-zinc-700">{row.correct_results}</td>
-      <td className="px-5 py-4 text-zinc-700">
-        {row.scored_predictions} / {row.predictions_made}
-      </td>
+      <td className="px-5 py-4 text-zinc-700">{row.score_points}</td>
+      <td className="px-5 py-4 text-zinc-700">{row.goal_difference_points}</td>
+      <td className="px-5 py-4 text-zinc-700">{row.kick_off_team_points}</td>
+      <td className="px-5 py-4 text-zinc-700">{row.yellow_card_points}</td>
       <td className="px-5 py-4">
-        <StatusPill tone={getPointsTone(row.card_points)}>
-          {formatSignedNumber(row.card_points)}
+        <StatusPill tone={getPointsTone(row.red_card_points)}>
+          {formatSignedNumber(row.red_card_points)}
         </StatusPill>
       </td>
+      <td className="px-5 py-4 text-zinc-700">{row.first_scoring_team_points}</td>
+      <td className="px-5 py-4 text-zinc-700">{row.scored_in_first_half_points}</td>
+      <td className="px-5 py-4 text-zinc-700">{row.match_duration_points}</td>
       <td className="px-5 py-4 text-right font-semibold text-zinc-950">
         {row.total_points}
+      </td>
+      <td className="px-5 py-4 text-zinc-700">
+        {row.predicted_matches} / {completedMatches}
       </td>
     </tr>
   );
@@ -184,7 +161,7 @@ function RaceChart({ frames }: { frames: LeaderboardRaceFrameResponse[] }) {
     <section className="overflow-hidden rounded-md border border-zinc-200 bg-white shadow-sm">
       <div className="flex flex-col gap-4 border-b border-zinc-200 px-5 py-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-zinc-950">Points race</h2>
+          <h2 className="text-lg font-semibold text-zinc-950">LeaderBoard Race</h2>
           <p className="mt-1 text-sm text-zinc-500">{frame.label}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -192,7 +169,7 @@ function RaceChart({ frames }: { frames: LeaderboardRaceFrameResponse[] }) {
             type="button"
             onClick={() => setIsPlaying((currentValue) => !currentValue)}
             disabled={safeFrames.length <= 1}
-            className="inline-flex h-10 items-center justify-center rounded-md border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:text-zinc-400"
+            className="inline-flex h-10 items-center justify-center cursor-pointer rounded-md border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:text-zinc-400"
           >
             {isPlaying ? "Pause" : "Play"}
           </button>
@@ -300,10 +277,6 @@ export function LeaderboardDashboard() {
   }, []);
 
   const rows = leaderboard?.items ?? [];
-  const metrics = useMemo(
-    () => (leaderboard ? buildMetrics(leaderboard) : []),
-    [leaderboard],
-  );
 
   if (isLoading) {
     return (
@@ -327,7 +300,7 @@ export function LeaderboardDashboard() {
         <div>
           <h2 className="text-lg font-semibold">Login required</h2>
           <p className="mt-1 text-sm">
-            Sign in to view tournament rankings and the points race.
+            Log in to view tournament leaderboard and the racing charts.
           </p>
         </div>
         <Link
@@ -351,20 +324,12 @@ export function LeaderboardDashboard() {
         </section>
       ) : null}
 
-      {metrics.length > 0 ? (
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {metrics.map((metric) => (
-            <MetricCard key={metric.label} metric={metric} />
-          ))}
-        </section>
-      ) : null}
-
       {leaderboard ? <RaceChart frames={leaderboard.race_frames} /> : null}
 
       {rows.length > 0 ? (
         <section className="overflow-hidden rounded-md border border-zinc-200 bg-white shadow-sm">
           <div className="border-b border-zinc-200 px-5 py-4">
-            <h2 className="text-lg font-semibold text-zinc-950">Top users</h2>
+            <h2 className="text-lg font-semibold text-zinc-950">Leaderboard Breakdown</h2>
             <p className="mt-1 text-sm text-zinc-500">
               Showing {rows.length} of {leaderboard?.total ?? 0} ranked users
             </p>
@@ -375,16 +340,21 @@ export function LeaderboardDashboard() {
                 <tr>
                   <th className="px-5 py-3">Rank</th>
                   <th className="px-5 py-3">User</th>
-                  <th className="px-5 py-3">Exact scores</th>
-                  <th className="px-5 py-3">Results</th>
-                  <th className="px-5 py-3">Scored</th>
-                  <th className="px-5 py-3">Cards</th>
-                  <th className="px-5 py-3 text-right">Points</th>
+                  <th className="px-5 py-3">Score</th>
+                  <th className="px-5 py-3">Goal Difference</th>
+                  <th className="px-5 py-3">Kick-off Team</th>
+                  <th className="px-5 py-3">Yello Card</th>
+                  <th className="px-5 py-3">Red Card</th>
+                  <th className="px-5 py-3">First Scoring Team</th>
+                  <th className="px-5 py-3">Goal in First Half</th>
+                  <th className="px-5 py-3">Match Duration</th>
+                  <th className="px-5 py-3 text-right">Total Points</th>
+                  <th className="px-5 py-3 text-right">Predicted Matches</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
                 {rows.map((row) => (
-                  <LeaderboardRow key={row.user_id} row={row} />
+                  <LeaderboardRow key={row.user_id} row={row} completedMatches={leaderboard?.completed_matches || 0} />
                 ))}
               </tbody>
             </table>

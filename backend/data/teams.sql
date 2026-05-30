@@ -1,4 +1,4 @@
-INSERT INTO teams (id, name, `group`, fifa_code, `rank`) VALUES
+INSERT INTO teams (id, name, `group`, fifa_code, fifa_rank) VALUES
 (1, 'Argentina', 'J', 'ARG', 3),
 (2, 'Belgium', 'G', 'BEL', 9),
 (3, 'Brazil', 'C', 'BRA', 6),
@@ -46,4 +46,6 @@ INSERT INTO teams (id, name, `group`, fifa_code, `rank`) VALUES
 (45, 'Tunisia', 'F', 'TUN', 44),
 (46, 'Türkiye', 'D', 'TUR', 22),
 (47, 'Czechia', 'A', 'CZE', 41),
-(48, 'Uruguay', 'H', 'URU', 17);
+(48, 'Uruguay', 'H', 'URU', 17),
+(101, 'TBD-H', 'NA', 'NEP', 0),
+(102, 'TBD-A', 'NA', 'NEP', 0);

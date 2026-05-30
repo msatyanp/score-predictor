@@ -4,7 +4,7 @@ CREATE TABLE teams (
     name VARCHAR(100) NOT NULL UNIQUE,
     `group` VARCHAR(20) NOT NULL,
     fifa_code VARCHAR(3) NOT NULL,
-    `rank` INT NOT NULL,
+    fifa_rank INT NOT NULL,
 
     -- TimestampMixin fields
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

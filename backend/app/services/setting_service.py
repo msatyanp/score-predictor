@@ -121,6 +121,10 @@ class SettingService:
             )
         return setting
 
+    async def get_current_match_day(self, db: AsyncSession) -> int:
+        """Get current match day."""
+        return self._setting_repository.get("current_match_day")
+
     @staticmethod
     def _build_list_response(
         *,

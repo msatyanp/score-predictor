@@ -1,6 +1,7 @@
 export type GroupStandingResponse = {
   drawn: number;
   fifa_code: string;
+  fifa_rank: number;
   flag_url: string;
   goal_difference: number;
   goals_against: number;

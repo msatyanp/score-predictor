@@ -7,7 +7,7 @@ import { ApiError } from "@/lib/api";
 import { listGroupTables } from "@/lib/groups";
 import type { GroupTableResponse } from "@/lib/groups";
 
-function formatGroupLabel(group: string): string {
+const formatGroupLabel = (group: string): string => {
   const normalizedGroup = group.trim();
 
   if (/^group\s+/i.test(normalizedGroup)) {
@@ -15,17 +15,17 @@ function formatGroupLabel(group: string): string {
   }
 
   return `Group ${normalizedGroup}`;
-}
+};
 
-function formatGoalDifference(goalDifference: number): string {
+const formatGoalDifference = (goalDifference: number): string => {
   if (goalDifference > 0) {
     return `+${goalDifference}`;
   }
 
   return String(goalDifference);
-}
+};
 
-function getLoadErrorMessage(error: unknown): string {
+const getLoadErrorMessage = (error: unknown): string => {
   if (error instanceof ApiError) {
     return error.message;
   }
@@ -35,16 +35,16 @@ function getLoadErrorMessage(error: unknown): string {
   }
 
   return "Unable to load group standings.";
-}
+};
 
-export default function GroupsPage() {
+const GroupsPage = () => {
   const [groupTables, setGroupTables] = useState<GroupTableResponse[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
-    async function fetchGroups() {
+    const fetchGroups = async () => {
       try {
         const response = await listGroupTables();
         if (isMounted) {
@@ -59,7 +59,7 @@ export default function GroupsPage() {
           setIsLoading(false);
         }
       }
-    }
+    };
     void fetchGroups();
     return () => {
       isMounted = false;
@@ -109,6 +109,7 @@ export default function GroupsPage() {
                       <th className="px-3 py-3 text-right">D</th>
                       <th className="px-3 py-3 text-right">L</th>
                       <th className="px-3 py-3 text-right">GD</th>
+                      <th className="px-3 py-3 text-right">FIFA Rank</th>
                       <th className="px-5 py-3 text-right">Pts</th>
                     </tr>
                   </thead>
@@ -144,6 +145,9 @@ export default function GroupsPage() {
                         <td className="px-3 py-4 text-right text-zinc-700">
                           {formatGoalDifference(team.goal_difference)}
                         </td>
+                        <td className="px-3 py-4 text-right text-zinc-700">
+                          {team.fifa_rank}
+                        </td>
                         <td className="px-5 py-4 text-right font-semibold text-zinc-950">
                           {team.points}
                         </td>
@@ -167,4 +171,6 @@ export default function GroupsPage() {
       )}
     </PageShell>
   );
-}
+};
+
+export default GroupsPage;

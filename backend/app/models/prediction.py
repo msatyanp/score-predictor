@@ -16,7 +16,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
-from app.models.match import GameDuration, game_duration_values
+from app.models.match import GameDuration, match_duration_values
 
 
 class Prediction(TimestampMixin, Base):
@@ -55,7 +55,7 @@ class Prediction(TimestampMixin, Base):
         nullable=False,
     )
 
-    opening_team_id: Mapped[int] = mapped_column(
+    kick_off_team_id: Mapped[int] = mapped_column(
         ForeignKey("teams.id"),
         nullable=False,
     )
@@ -69,13 +69,13 @@ class Prediction(TimestampMixin, Base):
         nullable=True,
         default=None,
     )
-    game_duration: Mapped[GameDuration] = mapped_column(
+    match_duration: Mapped[GameDuration] = mapped_column(
         Enum(
             GameDuration,
-            name="game_duration",
+            name="match_duration",
             native_enum=False,
             length=10,
-            values_callable=game_duration_values,
+            values_callable=match_duration_values,
             validate_strings=True,
         ),
         nullable=False,
@@ -98,9 +98,9 @@ class Prediction(TimestampMixin, Base):
         foreign_keys=[match_id],
         lazy="selectin",
     )
-    opening_team: Mapped["Team"] = relationship(  # noqa: F821
+    kick_off_team: Mapped["Team"] = relationship(  # noqa: F821
         "Team",
-        foreign_keys=[opening_team_id],
+        foreign_keys=[kick_off_team_id],
         lazy="selectin",
     )
     first_scoring_team: Mapped["Team | None"] = relationship(  # noqa: F821
@@ -129,7 +129,7 @@ class Prediction(TimestampMixin, Base):
         ),
         Index("ix_predictions_user_id", "user_id"),
         Index("ix_predictions_match_id", "match_id"),
-        Index("ix_predictions_opening_team_id", "opening_team_id"),
+        Index("ix_predictions_kick_off_team_id", "kick_off_team_id"),
         Index("ix_predictions_first_scoring_team_id", "first_scoring_team_id"),
         Index("ix_predictions_predicted_datetime", "predicted_datetime"),
     )

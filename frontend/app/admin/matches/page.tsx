@@ -8,13 +8,15 @@ import { getErrorMessage } from "@/lib/forms/error-message";
 import {
   createMatch,
   deleteMatch,
-  GAME_DURATIONS,
+  match_durations,
   listAdminMatches,
   updateMatch,
+  match_stages,
 } from "@/lib/matches";
-import type { GameDuration, MatchCreate, MatchResponse } from "@/lib/matches";
+import type { GameDuration, MatchCreate, MatchResponse, MatchStage } from "@/lib/matches";
 import { listAdminTeams } from "@/lib/teams";
 import type { TeamResponse } from "@/lib/teams";
+import { formatDateTime, getMatchLabelWithFlag } from "@/components/ui/match-card";
 
 type MatchFormState = {
   firstScoringTeamId: string;
@@ -24,6 +26,7 @@ type MatchFormState = {
   matchDay: string;
   matchLocked: boolean;
   matchReminderSent: boolean;
+  matchStage: string;
   openingTeamId: string;
   redCardCount: string;
   team1Id: string;
@@ -42,6 +45,7 @@ const emptyFormState: MatchFormState = {
   matchDay: "",
   matchLocked: false,
   matchReminderSent: false,
+  matchStage: "",
   openingTeamId: "",
   redCardCount: "",
   team1Id: "",
@@ -58,57 +62,53 @@ const durationLabels: Record<GameDuration, string> = {
   PENALTY: "Penalty",
 };
 
-function formatDateTime(value: string): string {
-  const date = new Date(value);
+const stageLabels: Record<MatchStage, string> = {
+  "GROUP": "Group Stage",
+  "R32": "Round of 32",
+  "R16": "Round of 16",
+  "QF": "Quarter Final",
+  "SF": "Semi Final",
+  "F": "F",
+};
 
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat("en", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-}
-
-function formatScore(match: MatchResponse): string {
+const formatScore = (match: MatchResponse): string => {
   if (match.team1_score === null || match.team2_score === null) {
     return "Not set";
   }
 
   return `${match.team1_score} - ${match.team2_score}`;
-}
+};
 
-function getMatchStatus(match: MatchResponse): "Open" | "Locked" {
+const getMatchStatus = (match: MatchResponse): "Open" | "Locked" => {
   return match.match_locked ? "Locked" : "Open";
-}
+};
 
-function getTeamNameById(
+const getTeamNameById = (
   teams: TeamResponse[],
   teamId: number | null | undefined,
-): string {
+): string => {
   if (teamId === null || teamId === undefined) {
     return "None";
   }
 
   return teams.find((team) => team.id === teamId)?.name ?? `Team #${teamId}`;
-}
+};
 
-function getMatchLabel(match: MatchResponse): string {
+const getMatchLabelText = (match: MatchResponse): string => {
   return `${match.team1_name} vs ${match.team2_name}`;
-}
+};
 
-function toDateTimeInputValue(value: string): string {
+const toDateTimeInputValue = (value: string): string => {
   return value ? value.slice(0, 16) : "";
-}
+};
 
-function toFormState(match: MatchResponse): MatchFormState {
+const toFormState = (match: MatchResponse): MatchFormState => {
   return {
     firstScoringTeamId:
       match.first_scoring_team_id === null
         ? ""
         : String(match.first_scoring_team_id),
-    gameDuration: match.game_duration ?? "",
+    gameDuration: match.match_duration ?? "",
     isGoalInFirstHalf:
       match.is_goal_in_first_half === null
         ? ""
@@ -117,8 +117,9 @@ function toFormState(match: MatchResponse): MatchFormState {
     matchDay: String(match.match_day),
     matchLocked: match.match_locked,
     matchReminderSent: match.match_reminder_sent,
+    matchStage: match.match_stage ?? "",
     openingTeamId:
-      match.opening_team_id === null ? "" : String(match.opening_team_id),
+      match.kick_off_team_id === null ? "" : String(match.kick_off_team_id),
     redCardCount:
       match.red_card_count === null ? "" : String(match.red_card_count),
     team1Id: String(match.team1_id),
@@ -131,9 +132,9 @@ function toFormState(match: MatchResponse): MatchFormState {
     yellowCardCount:
       match.yellow_card_count === null ? "" : String(match.yellow_card_count),
   };
-}
+};
 
-function parseRequiredInteger(value: string, label: string): number {
+const parseRequiredInteger = (value: string, label: string): number => {
   const parsedValue = Number(value);
 
   if (!Number.isInteger(parsedValue) || parsedValue <= 0) {
@@ -141,12 +142,12 @@ function parseRequiredInteger(value: string, label: string): number {
   }
 
   return parsedValue;
-}
+};
 
-function parseOptionalNonNegativeInteger(
+const parseOptionalNonNegativeInteger = (
   value: string,
   label: string,
-): number | null {
+): number | null => {
   const normalizedValue = value.trim();
 
   if (!normalizedValue) {
@@ -160,13 +161,13 @@ function parseOptionalNonNegativeInteger(
   }
 
   return parsedValue;
-}
+};
 
-function parseOptionalPositiveInteger(value: string): number | null {
+const parseOptionalPositiveInteger = (value: string): number | null => {
   return value ? parseRequiredInteger(value, "Team") : null;
-}
+};
 
-function parseRequiredBoolean(value: string, label: string): boolean {
+const parseRequiredBoolean = (value: string, label: string): boolean => {
   if (value === "true") {
     return true;
   }
@@ -176,13 +177,13 @@ function parseRequiredBoolean(value: string, label: string): boolean {
   }
 
   throw new Error(`${label} is required.`);
-}
+};
 
-function isGameDuration(value: string): value is GameDuration {
-  return GAME_DURATIONS.includes(value as GameDuration);
-}
+const isGameDuration = (value: string): value is GameDuration => {
+  return match_durations.includes(value as GameDuration);
+};
 
-function hasGoals(state: Pick<MatchFormState, "team1Score" | "team2Score">): boolean {
+const hasGoals = (state: Pick<MatchFormState, "team1Score" | "team2Score">): boolean => {
   const team1Score = Number(state.team1Score);
   const team2Score = Number(state.team2Score);
 
@@ -190,9 +191,9 @@ function hasGoals(state: Pick<MatchFormState, "team1Score" | "team2Score">): boo
     (Number.isFinite(team1Score) && team1Score > 0) ||
     (Number.isFinite(team2Score) && team2Score > 0)
   );
-}
+};
 
-function buildMatchPayload(state: MatchFormState): MatchCreate {
+const buildMatchPayload = (state: MatchFormState): MatchCreate => {
   const team1Id = parseRequiredInteger(state.team1Id, "Team 1");
   const team2Id = parseRequiredInteger(state.team2Id, "Team 2");
 
@@ -216,19 +217,20 @@ function buildMatchPayload(state: MatchFormState): MatchCreate {
 
   return {
     first_scoring_team_id: matchHasGoals
-      ? parseRequiredInteger(state.firstScoringTeamId, "1st scoring team")
+      ? parseRequiredInteger(state.firstScoringTeamId, "First scoring team")
       : null,
-    game_duration: isGameDuration(state.gameDuration)
+    match_duration: isGameDuration(state.gameDuration)
       ? state.gameDuration
       : null,
     is_goal_in_first_half: matchHasGoals
-      ? parseRequiredBoolean(state.isGoalInFirstHalf, "Goal in 1st half")
+      ? parseRequiredBoolean(state.isGoalInFirstHalf, "Goal in First half")
       : null,
     match_datetime: state.matchDatetime,
     match_day: parseRequiredInteger(state.matchDay, "Match day"),
     match_locked: state.matchLocked,
     match_reminder_sent: state.matchReminderSent,
-    opening_team_id: parseOptionalPositiveInteger(state.openingTeamId),
+    match_stage: state.matchStage,
+    kick_off_team_id: parseOptionalPositiveInteger(state.openingTeamId),
     red_card_count: parseOptionalNonNegativeInteger(
       state.redCardCount,
       "Red cards",
@@ -243,9 +245,9 @@ function buildMatchPayload(state: MatchFormState): MatchCreate {
       "Yellow cards",
     ),
   };
-}
+};
 
-export default function AdminMatchesPage() {
+const AdminMatchesPage = () => {
   const [editingMatchId, setEditingMatchId] = useState<number | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [formState, setFormState] = useState<MatchFormState>(emptyFormState);
@@ -270,7 +272,7 @@ export default function AdminMatchesPage() {
   useEffect(() => {
     let isMounted = true;
 
-    async function loadInitialPageData() {
+    const loadInitialPageData = async () => {
       setIsLoading(true);
       setLoadError(null);
 
@@ -293,7 +295,7 @@ export default function AdminMatchesPage() {
           setIsLoading(false);
         }
       }
-    }
+    };
 
     void loadInitialPageData();
 
@@ -302,7 +304,7 @@ export default function AdminMatchesPage() {
     };
   }, []);
 
-  function updateField(field: keyof MatchFormState, value: string | boolean) {
+  const updateField = (field: keyof MatchFormState, value: string | boolean) => {
     setFormState((current) => {
       const nextState = {
         ...current,
@@ -325,29 +327,29 @@ export default function AdminMatchesPage() {
 
       return nextState;
     });
-  }
+  };
 
-  function startNewMatch() {
+  const startNewMatch = () => {
     setEditingMatchId(null);
     setFormState(emptyFormState);
     setFormError(null);
     setSuccessMessage(null);
     setIsModalOpen(true);
-  }
+  };
 
-  function startEditingMatch(match: MatchResponse) {
+  const startEditingMatch = (match: MatchResponse) => {
     setEditingMatchId(match.id);
     setFormState(toFormState(match));
     setFormError(null);
     setSuccessMessage(null);
     setIsModalOpen(true);
-  }
+  };
 
-  function handleCloseModal() {
+  const handleCloseModal = () => {
     setIsModalOpen(false);
-  }
+  };
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setFormError(null);
     setSuccessMessage(null);
@@ -380,10 +382,10 @@ export default function AdminMatchesPage() {
     } finally {
       setIsSubmitting(false);
     }
-  }
+  };
 
-  async function handleDelete(match: MatchResponse) {
-    if (!window.confirm(`Delete ${getMatchLabel(match)}?`)) {
+  const handleDelete = async (match: MatchResponse) => {
+    if (!window.confirm(`Delete ${getMatchLabelText(match)}?`)) {
       return;
     }
 
@@ -401,14 +403,14 @@ export default function AdminMatchesPage() {
     } finally {
       setIsDeletingId(null);
     }
-  }
+  };
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
       <section className="flex flex-wrap items-center justify-between gap-3">
         <div><h2>Tournament Matches</h2></div>
         <button
-          className="inline-flex h-10 items-center rounded-md bg-zinc-950 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800"
+          className="inline-flex h-10 items-center rounded-md bg-zinc-950 px-4 text-sm font-semibold text-white transition cursor-pointer hover:bg-zinc-800"
           type="button"
           onClick={startNewMatch}
         >
@@ -434,8 +436,8 @@ export default function AdminMatchesPage() {
                 <th className="px-5 py-3">Day</th>
                 <th className="px-5 py-3">Kickoff</th>
                 <th className="px-5 py-3">Score</th>
-                <th className="px-5 py-3">1st scorer</th>
-                <th className="px-5 py-3">1H goal</th>
+                <th className="px-5 py-3">First scorer</th>
+                <th className="px-5 py-3">First Half goal</th>
                 <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3 text-right">Actions</th>
               </tr>
@@ -454,7 +456,7 @@ export default function AdminMatchesPage() {
                 matches.map((match) => (
                   <tr key={match.id}>
                     <td className="px-5 py-4 font-medium text-zinc-950">
-                      {getMatchLabel(match)}
+                      {getMatchLabelWithFlag(match)}
                     </td>
                     <td className="px-5 py-4 text-zinc-700">
                       {match.match_day}
@@ -485,14 +487,14 @@ export default function AdminMatchesPage() {
                     <td className="px-5 py-4 text-right">
                       <div className="flex justify-end gap-3">
                         <button
-                          className="font-semibold text-emerald-700 hover:text-emerald-900"
+                          className="font-semibold text-emerald-700 cursor-pointer hover:text-emerald-900"
                           type="button"
                           onClick={() => startEditingMatch(match)}
                         >
                           Edit
                         </button>
                         <button
-                          className="font-semibold text-rose-700 hover:text-rose-900 disabled:text-zinc-400"
+                          className="font-semibold text-rose-700 cursor-pointer hover:text-rose-900 disabled:text-zinc-400"
                           disabled={isDeletingId === match.id}
                           type="button"
                           onClick={() => void handleDelete(match)}
@@ -538,7 +540,7 @@ export default function AdminMatchesPage() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
-              <span className="text-sm font-medium text-zinc-700">Team 1</span>
+              <span className="text-sm font-medium text-zinc-700"><p>Team 1</p></span>
               <select
                 name="team1_id"
                 required
@@ -555,7 +557,7 @@ export default function AdminMatchesPage() {
               </select>
             </label>
             <label className="block">
-              <span className="text-sm font-medium text-zinc-700">Team 2</span>
+              <span className="text-sm font-medium text-zinc-700"><p>Team 2</p></span>
               <select
                 name="team2_id"
                 required
@@ -572,7 +574,7 @@ export default function AdminMatchesPage() {
               </select>
             </label>
             <label className="block">
-              <span className="text-sm font-medium text-zinc-700">Kickoff</span>
+              <span className="text-sm font-medium text-zinc-700"><p>Kickoff (UTC Time)</p></span>
               <input
                 name="match_datetime"
                 required
@@ -585,7 +587,7 @@ export default function AdminMatchesPage() {
               />
             </label>
             <label className="block">
-              <span className="text-sm font-medium text-zinc-700">Match day</span>
+              <span className="text-sm font-medium text-zinc-700"><p>Match day</p></span>
               <input
                 min="1"
                 name="match_day"
@@ -596,8 +598,8 @@ export default function AdminMatchesPage() {
                 className="mt-2 h-11 w-full rounded-md border border-zinc-300 px-3 text-zinc-950 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
               />
             </label>
-            <label className="block sm:col-span-2">
-              <span className="text-sm font-medium text-zinc-700">Venue</span>
+            <label className="block sm:col-span-1">
+              <span className="text-sm font-medium text-zinc-700"><p>Venue</p></span>
               <input
                 name="venue_name"
                 type="text"
@@ -608,33 +610,57 @@ export default function AdminMatchesPage() {
             </label>
             <label className="block">
               <span className="text-sm font-medium text-zinc-700">
-                Team 1 score
+                <p>Game Stage</p>
+              </span>
+              <select
+                name="match_stage"
+                value={formState.matchStage}
+                onChange={(event) =>
+                  updateField("matchStage", event.target.value)
+                }
+                className="mt-2 h-11 w-full rounded-md border border-zinc-300 bg-white px-3 text-zinc-950 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
+              >
+                <option value="">Not set</option>
+                {match_stages.map((stage) => (
+                  <option key={stage} value={stage}>
+                    {stageLabels[stage]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block">
+              <span className="text-sm font-medium text-zinc-700">
+                <p>
+                  {formState.team1Id ? teams.find((team) => team.id.toString() === formState.team1Id)?.name : "Team 1 score"}
+                </p>
               </span>
               <input
                 min="0"
                 name="team1_score"
                 type="number"
-                value={formState.team1Score}
+                value={formState.team1Score || 0}
                 onChange={(event) => updateField("team1Score", event.target.value)}
                 className="mt-2 h-11 w-full rounded-md border border-zinc-300 px-3 text-zinc-950 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
               />
             </label>
             <label className="block">
               <span className="text-sm font-medium text-zinc-700">
-                Team 2 score
+                <p>
+                  {formState.team2Id ? teams.find((team) => team.id.toString() === formState.team2Id)?.name : "Team 2 score"}
+                </p>
               </span>
               <input
                 min="0"
                 name="team2_score"
                 type="number"
-                value={formState.team2Score}
+                value={formState.team2Score || 0}
                 onChange={(event) => updateField("team2Score", event.target.value)}
                 className="mt-2 h-11 w-full rounded-md border border-zinc-300 px-3 text-zinc-950 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
               />
             </label>
             <label className="block">
               <span className="text-sm font-medium text-zinc-700">
-                1st scoring team
+                <p>First scoring team</p>
               </span>
               <select
                 disabled={!matchHasGoals}
@@ -658,7 +684,7 @@ export default function AdminMatchesPage() {
             </label>
             <label className="block">
               <span className="text-sm font-medium text-zinc-700">
-                Goal in 1st half
+                <p>Goal in first half</p>
               </span>
               <select
                 disabled={!matchHasGoals}
@@ -677,13 +703,13 @@ export default function AdminMatchesPage() {
             </label>
             <label className="block">
               <span className="text-sm font-medium text-zinc-700">
-                Yellow cards
+                <p>Yellow cards</p>
               </span>
               <input
                 min="0"
                 name="yellow_card_count"
                 type="number"
-                value={formState.yellowCardCount}
+                value={formState.yellowCardCount || 0}
                 onChange={(event) =>
                   updateField("yellowCardCount", event.target.value)
                 }
@@ -691,22 +717,22 @@ export default function AdminMatchesPage() {
               />
             </label>
             <label className="block">
-              <span className="text-sm font-medium text-zinc-700">Red cards</span>
+              <span className="text-sm font-medium text-zinc-700"><p>Red cards</p></span>
               <input
                 min="0"
                 name="red_card_count"
                 type="number"
-                value={formState.redCardCount}
+                value={formState.redCardCount || 0}
                 onChange={(event) => updateField("redCardCount", event.target.value)}
                 className="mt-2 h-11 w-full rounded-md border border-zinc-300 px-3 text-zinc-950 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
               />
             </label>
             <label className="block">
               <span className="text-sm font-medium text-zinc-700">
-                Opening team
+                <p>Kick-off team</p>
               </span>
               <select
-                name="opening_team_id"
+                name="kick_off_team_id"
                 value={formState.openingTeamId}
                 onChange={(event) =>
                   updateField("openingTeamId", event.target.value)
@@ -723,10 +749,10 @@ export default function AdminMatchesPage() {
             </label>
             <label className="block">
               <span className="text-sm font-medium text-zinc-700">
-                Game duration
+                <p>Game duration</p>
               </span>
               <select
-                name="game_duration"
+                name="match_duration"
                 value={formState.gameDuration}
                 onChange={(event) =>
                   updateField("gameDuration", event.target.value)
@@ -734,7 +760,7 @@ export default function AdminMatchesPage() {
                 className="mt-2 h-11 w-full rounded-md border border-zinc-300 bg-white px-3 text-zinc-950 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
               >
                 <option value="">Not set</option>
-                {GAME_DURATIONS.map((duration) => (
+                {match_durations.map((duration) => (
                   <option key={duration} value={duration}>
                     {durationLabels[duration]}
                   </option>
@@ -751,7 +777,7 @@ export default function AdminMatchesPage() {
                 }
                 className="h-4 w-4 accent-emerald-700"
               />
-              Locked
+              <p>Locked</p>
             </label>
             <label className="flex items-center gap-3 rounded-md border border-zinc-200 px-3 py-3 text-sm font-medium text-zinc-700">
               <input
@@ -763,7 +789,7 @@ export default function AdminMatchesPage() {
                 }
                 className="h-4 w-4 accent-emerald-700"
               />
-              Reminder sent
+              <p>Reminder sent</p>
             </label>
           </div>
 
@@ -778,14 +804,14 @@ export default function AdminMatchesPage() {
 
           <div className="mt-4 flex justify-end gap-3">
             <button
-              className="inline-flex h-11 items-center justify-center rounded-md border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50"
+              className="inline-flex h-11 items-center justify-center rounded-md border cursor-pointer border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50"
               type="button"
               onClick={handleCloseModal}
             >
               Cancel
             </button>
             <button
-              className="inline-flex h-11 items-center justify-center rounded-md bg-zinc-950 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
+              className="inline-flex h-11 items-center justify-center rounded-md cursor-pointer bg-zinc-950 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
               disabled={isSubmitting}
               type="submit"
             >
@@ -800,4 +826,6 @@ export default function AdminMatchesPage() {
       </Modal>
     </main>
   );
-}
+};
+
+export default AdminMatchesPage;

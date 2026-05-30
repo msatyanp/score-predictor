@@ -7,17 +7,35 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin_user
 from app.db.session import get_db
+from app.schemas.group import GroupTableListResponse
 from app.schemas.team import TeamCreate, TeamListResponse, TeamResponse, TeamUpdate
+from app.services.group_service import GroupService
 from app.services.team_service import TeamService
 
-router = APIRouter(
+group_router = APIRouter(prefix="/teams/groups", tags=["Teams"])
+
+
+admin_router = APIRouter(
     prefix="/admin/teams",
-    tags=["Admin Teams"],
+    tags=["Teams"],
     dependencies=[Depends(get_current_admin_user)],
 )
 
 
-@router.get(
+@group_router.get(
+    "",
+    response_model=GroupTableListResponse,
+    summary="List group standings",
+)
+async def list_group_tables(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> GroupTableListResponse:
+    """Return group-stage standings for the public groups page."""
+    service = GroupService(db)
+    return await service.list_group_tables()
+
+
+@admin_router.get(
     "",
     response_model=TeamListResponse,
     summary="List teams",
@@ -39,7 +57,7 @@ async def list_teams(
     )
 
 
-@router.post(
+@admin_router.post(
     "",
     response_model=TeamResponse,
     status_code=status.HTTP_201_CREATED,
@@ -54,7 +72,7 @@ async def create_team(
     return await service.create_team(data)
 
 
-@router.put(
+@admin_router.put(
     "/{team_id}",
     response_model=TeamResponse,
     summary="Update team",
@@ -69,7 +87,7 @@ async def update_team(
     return await service.update_team(team_id=team_id, data=data)
 
 
-@router.delete(
+@admin_router.delete(
     "/{team_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete team",

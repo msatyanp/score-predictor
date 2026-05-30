@@ -1,6 +1,6 @@
 """Team SQLAlchemy model."""
 
-from sqlalchemy import CheckConstraint, Index, String
+from sqlalchemy import CheckConstraint, Index, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, TimestampMixin
@@ -28,6 +28,10 @@ class Team(TimestampMixin, Base):
     fifa_code: Mapped[str] = mapped_column(
         String(3),
         nullable=False,
+    )
+    fifa_rank: Mapped[int] = mapped_column(
+        Integer(),
+        nullable=True,
     )
 
     __table_args__ = (

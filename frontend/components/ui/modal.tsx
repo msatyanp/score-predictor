@@ -56,7 +56,7 @@ export function Modal({ children, isOpen, onClose, title }: ModalProps) {
           <h2 className="text-lg font-semibold text-zinc-950">{title}</h2>
           <button
             type="button"
-            className="rounded-md p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition"
+            className="rounded-md p-1 cursor-pointer text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition"
             onClick={onClose}
             aria-label="Close"
           >

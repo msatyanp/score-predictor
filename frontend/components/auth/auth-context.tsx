@@ -15,11 +15,11 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<UserResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  async function refreshUser() {
+  const refreshUser = async () => {
     if (!isAuthenticated()) {
       setUser(null);
       setIsLoading(false);
@@ -35,13 +35,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
     void refreshUser();
   }, []);
 
-  async function login(data: LoginRequest) {
+  const login = async (data: LoginRequest) => {
     setIsLoading(true);
     try {
       const res = await apiLogin(data);
@@ -51,9 +51,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
       throw error;
     }
-  }
+  };
 
-  async function signup(data: SignupRequest) {
+  const signup = async (data: SignupRequest) => {
     setIsLoading(true);
     try {
       const res = await apiSignup(data);
@@ -63,24 +63,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
       throw error;
     }
-  }
+  };
 
-  function logout() {
+  const logout = () => {
     apiLogout();
     setUser(null);
-  }
+  };
 
   return (
     <AuthContext.Provider value={{ user, isLoading, login, signup, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
-}
+};
 
-export function useAuth() {
+export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
-}
+};

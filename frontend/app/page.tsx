@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-import { MatchCard } from "@/components/ui/match-card";
 import { MetricCard } from "@/components/ui/metric-card";
 import { PageShell } from "@/components/ui/page-shell";
 import { StatusPill } from "@/components/ui/status-pill";
@@ -9,9 +8,8 @@ import { getHomeSummary } from "@/lib/home";
 import type { HomeSummaryResponse } from "@/lib/home";
 import { listUpcomingMatches } from "@/lib/matches";
 import type { MatchResponse } from "@/lib/matches";
-import type { MatchCard as MatchCardType, Metric } from "@/lib/view-data";
-
-const HOUR_IN_MS = 60 * 60 * 1000;
+import type { Metric } from "@/lib/view-data";
+import { MatchCard } from "@/components/ui/match-card";
 
 type HomePageData = {
   errors: string[];
@@ -19,7 +17,7 @@ type HomePageData = {
   summary: HomeSummaryResponse | null;
 };
 
-function getLoadErrorMessage(error: unknown, fallback: string): string {
+const getLoadErrorMessage = (error: unknown, fallback: string): string => {
   if (error instanceof ApiError) {
     return error.message;
   }
@@ -29,9 +27,9 @@ function getLoadErrorMessage(error: unknown, fallback: string): string {
   }
 
   return fallback;
-}
+};
 
-async function loadHomePageData(): Promise<HomePageData> {
+const loadHomePageData = async (): Promise<HomePageData> => {
   const [summaryResult, matchesResult] = await Promise.allSettled([
     getHomeSummary(),
     listUpcomingMatches({ includeLocked: true, limit: 3 }),
@@ -63,17 +61,17 @@ async function loadHomePageData(): Promise<HomePageData> {
   }
 
   return { errors, matches, summary };
-}
+};
 
-function formatNumber(value: number | undefined): string {
+const formatNumber = (value: number | undefined): string => {
   if (value === undefined) {
     return "N/A";
   }
 
   return new Intl.NumberFormat("en").format(value);
-}
+};
 
-function buildDashboardMetrics(summary: HomeSummaryResponse | null): Metric[] {
+const buildDashboardMetrics = (summary: HomeSummaryResponse | null): Metric[] => {
   return [
     {
       label: "Open matches",
@@ -96,87 +94,9 @@ function buildDashboardMetrics(summary: HomeSummaryResponse | null): Metric[] {
       value: formatNumber(summary?.completed_matches),
     },
   ];
-}
+};
 
-function formatDateTime(value: string): string {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat("en", {
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    month: "short",
-  }).format(date);
-}
-
-function formatGroupLabel(group: string): string {
-  const normalizedGroup = group.trim();
-
-  if (!normalizedGroup) {
-    return "Group TBA";
-  }
-
-  if (/^group\s+/i.test(normalizedGroup)) {
-    return normalizedGroup;
-  }
-
-  return `Group ${normalizedGroup}`;
-}
-
-function formatMatchGroup(match: MatchResponse): string {
-  if (match.team1_group === match.team2_group) {
-    return formatGroupLabel(match.team1_group);
-  }
-
-  return `${formatGroupLabel(match.team1_group)} / ${formatGroupLabel(
-    match.team2_group,
-  )}`;
-}
-
-function getMatchLockState(
-  match: MatchResponse,
-): MatchCardType["lockState"] {
-  if (match.match_locked) {
-    return "Locked";
-  }
-
-  const kickoffTime = new Date(match.match_datetime).getTime();
-  const lockTime = kickoffTime - HOUR_IN_MS;
-  const now = Date.now();
-
-  if (!Number.isFinite(lockTime)) {
-    return "Open";
-  }
-
-  if (now >= lockTime) {
-    return "Locked";
-  }
-
-  if (lockTime - now <= 3 * HOUR_IN_MS) {
-    return "Locking soon";
-  }
-
-  return "Open";
-}
-
-function toMatchCard(match: MatchResponse): MatchCardType {
-  return {
-    awayTeam: match.team2_name,
-    day: `Match day ${match.match_day}`,
-    group: formatMatchGroup(match),
-    homeTeam: match.team1_name,
-    id: match.id,
-    kickOff: formatDateTime(match.match_datetime),
-    lockState: getMatchLockState(match),
-    venue: match.venue_name?.trim() || "TBA",
-  };
-}
-
-function formatMinutes(value: number): string {
+const formatMinutes = (value: number): string => {
   if (value <= 0) {
     return "Now";
   }
@@ -194,12 +114,11 @@ function formatMinutes(value: number): string {
   }
 
   return `${minutes}m`;
-}
+};
 
-export default async function Home() {
+const Home = async () => {
   const { errors, matches, summary } = await loadHomePageData();
   const dashboardMetrics = buildDashboardMetrics(summary);
-  const upcomingMatches = matches.map(toMatchCard);
   const nextLock = summary?.next_lock ?? null;
 
   return (
@@ -222,7 +141,7 @@ export default async function Home() {
       }
       eyebrow="Match center"
       subtitle="Upcoming fixtures, prediction windows, standings signals, and quick access to tournament areas."
-      title="Football Tournament Predictor"
+      title="Football Match Tournament Predictor"
     >
       {errors.length > 0 ? (
         <section
@@ -257,7 +176,7 @@ export default async function Home() {
               <p className="mt-2 text-4xl font-semibold tracking-normal">
                 {nextLock ? formatMinutes(nextLock.minutes_until_lock) : "N/A"}
               </p>
-              <p className="mt-3 max-w-xs text-sm leading-6 text-emerald-50">
+              <p className="mt-3 max-w-xs text-lg leading-6 text-emerald-50">
                 {nextLock
                   ? `${nextLock.label} locks one hour before kickoff.`
                   : "Upcoming prediction windows will appear here once matches are open."}
@@ -284,9 +203,9 @@ export default async function Home() {
             All predictions
           </Link>
         </div>
-        {upcomingMatches.length > 0 ? (
+        {matches.length > 0 ? (
           <div className="grid gap-4 lg:grid-cols-3">
-            {upcomingMatches.map((match) => (
+            {matches.map((match) => (
               <MatchCard key={match.id} match={match} />
             ))}
           </div>
@@ -304,4 +223,6 @@ export default async function Home() {
       </section>
     </PageShell>
   );
-}
+};
+
+export default Home;

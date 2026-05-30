@@ -1,13 +1,13 @@
 import { authenticatedApiFetch } from "@/lib/auth";
 import type {
-  ListAdminTeamsParams,
+  ListTeamsParams,
   TeamCreate,
   TeamListResponse,
   TeamResponse,
   TeamUpdate,
 } from "@/lib/teams/types";
 
-function toQueryString(params: ListAdminTeamsParams): string {
+const toQueryString = (params: ListTeamsParams): string => {
   const searchParams = new URLSearchParams();
 
   if (params.offset !== undefined) {
@@ -27,30 +27,30 @@ function toQueryString(params: ListAdminTeamsParams): string {
   }
 
   return searchParams.toString();
-}
+};
 
-export async function listAdminTeams(
-  params: ListAdminTeamsParams = {},
-): Promise<TeamListResponse> {
+export const listAdminTeams = async (
+  params: ListTeamsParams = {},
+): Promise<TeamListResponse> => {
   const queryString = toQueryString(params);
   const path = queryString ? `/admin/teams?${queryString}` : "/admin/teams";
 
   return authenticatedApiFetch<TeamListResponse>(path, {
     method: "GET",
   });
-}
+};
 
-export async function createTeam(data: TeamCreate): Promise<TeamResponse> {
+export const createTeam = async (data: TeamCreate): Promise<TeamResponse> => {
   return authenticatedApiFetch<TeamResponse, TeamCreate>("/admin/teams", {
     body: data,
     method: "POST",
   });
-}
+};
 
-export async function updateTeam(
+export const updateTeam = async (
   teamId: number,
   data: TeamUpdate,
-): Promise<TeamResponse> {
+): Promise<TeamResponse> => {
   return authenticatedApiFetch<TeamResponse, TeamUpdate>(
     `/admin/teams/${teamId}`,
     {
@@ -58,13 +58,13 @@ export async function updateTeam(
       method: "PUT",
     },
   );
-}
+};
 
-export async function deleteTeam(teamId: number): Promise<void> {
+export const deleteTeam = async (teamId: number): Promise<void> => {
   await authenticatedApiFetch<null>(`/admin/teams/${teamId}`, {
     method: "DELETE",
   });
-}
+};
 
 export const teamService = {
   createTeam,

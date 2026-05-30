@@ -28,11 +28,10 @@ export function PrimaryNav() {
           <Link
             key={item.href}
             href={item.href}
-            className={`inline-flex h-10 shrink-0 items-center rounded-md px-3 text-sm font-medium transition ${
-              active
-                ? "bg-zinc-950 text-white"
-                : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950"
-            }`}
+            className={`inline-flex h-10 shrink-0 items-center rounded-md px-3 text-sm font-medium transition ${active
+              ? "text-blue-600"
+              : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950"
+              }`}
           >
             {item.label}
           </Link>

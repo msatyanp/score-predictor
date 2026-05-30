@@ -4,7 +4,7 @@ import type {
   ListLeaderboardParams,
 } from "@/lib/leaderboard/types";
 
-function toQueryString(params: ListLeaderboardParams): string {
+const toQueryString = (params: ListLeaderboardParams): string => {
   const searchParams = new URLSearchParams();
 
   if (params.offset !== undefined) {
@@ -16,18 +16,18 @@ function toQueryString(params: ListLeaderboardParams): string {
   }
 
   return searchParams.toString();
-}
+};
 
-export async function listLeaderboard(
+export const listLeaderboard = async (
   params: ListLeaderboardParams = {},
-): Promise<LeaderboardResponse> {
+): Promise<LeaderboardResponse> => {
   const queryString = toQueryString(params);
   const path = queryString ? `/leaderboard?${queryString}` : "/leaderboard";
 
   return authenticatedApiFetch<LeaderboardResponse>(path, {
     method: "GET",
   });
-}
+};
 
 export const leaderboardService = {
   listLeaderboard,

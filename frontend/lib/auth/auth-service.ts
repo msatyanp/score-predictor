@@ -30,15 +30,15 @@ type AuthenticatedFetchOptions<TBody = unknown> = Omit<
   retryOnUnauthorized?: boolean;
 };
 
-function requireToken(token: string | null | undefined): string {
+const requireToken = (token: string | null | undefined): string => {
   if (!token) {
     throw new MissingAuthTokenError();
   }
 
   return token;
-}
+};
 
-export async function signup(data: SignupRequest): Promise<TokenResponse> {
+export const signup = async (data: SignupRequest): Promise<TokenResponse> => {
   const tokens = await apiFetch<TokenResponse, SignupRequest>("/auth/signup", {
     body: data,
     method: "POST",
@@ -46,9 +46,9 @@ export async function signup(data: SignupRequest): Promise<TokenResponse> {
 
   setAuthTokens(tokens);
   return tokens;
-}
+};
 
-export async function login(data: LoginRequest): Promise<TokenResponse> {
+export const login = async (data: LoginRequest): Promise<TokenResponse> => {
   const tokens = await apiFetch<TokenResponse, LoginRequest>("/auth/login", {
     body: data,
     method: "POST",
@@ -56,11 +56,11 @@ export async function login(data: LoginRequest): Promise<TokenResponse> {
 
   setAuthTokens(tokens);
   return tokens;
-}
+};
 
-export async function refresh(
+export const refresh = async (
   refreshToken: string | null = getRefreshToken(),
-): Promise<TokenResponse> {
+): Promise<TokenResponse> => {
   const token = requireToken(refreshToken);
 
   try {
@@ -81,21 +81,21 @@ export async function refresh(
 
     throw error;
   }
-}
+};
 
-export async function getCurrentUser(
+export const getCurrentUser = async (
   accessToken: string | null = getAccessToken(),
-): Promise<UserResponse> {
+): Promise<UserResponse> => {
   return apiFetch<UserResponse>("/auth/me", {
     accessToken: requireToken(accessToken),
     method: "GET",
   });
-}
+};
 
-export async function authenticatedApiFetch<TResponse, TBody = unknown>(
+export const authenticatedApiFetch = async <TResponse, TBody = unknown>(
   path: string,
   options: AuthenticatedFetchOptions<TBody> = {},
-): Promise<TResponse> {
+): Promise<TResponse> => {
   const {
     accessToken = getAccessToken(),
     refreshToken = getRefreshToken(),
@@ -126,15 +126,15 @@ export async function authenticatedApiFetch<TResponse, TBody = unknown>(
 
     throw error;
   }
-}
+};
 
-export function logout(): void {
+export const logout = (): void => {
   clearAuthTokens();
-}
+};
 
-export function isAuthenticated(): boolean {
+export const isAuthenticated = (): boolean => {
   return Boolean(getAccessToken());
-}
+};
 
 export const authService = {
   authenticatedApiFetch,

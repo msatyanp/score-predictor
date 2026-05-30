@@ -19,11 +19,11 @@ export class ApiError extends Error {
   }
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === "object" && value !== null && !Array.isArray(value);
-}
+};
 
-function getValidationMessage(detail: unknown): string | null {
+const getValidationMessage = (detail: unknown): string | null => {
   if (!isRecord(detail)) {
     return null;
   }
@@ -37,12 +37,12 @@ function getValidationMessage(detail: unknown): string | null {
   }
 
   return null;
-}
+};
 
-export function getApiErrorMessage(
+export const getApiErrorMessage = (
   payload: unknown,
   fallback: string,
-): string {
+): string => {
   if (typeof payload === "string" && payload.trim()) {
     return payload;
   }
@@ -70,4 +70,4 @@ export function getApiErrorMessage(
   }
 
   return fallback;
-}
+};

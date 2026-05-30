@@ -1,13 +1,14 @@
+import { apiFetch } from "@/lib/api";
 import { authenticatedApiFetch } from "@/lib/auth";
 import type {
-  ListAdminSettingsParams,
+  ListSettingsParams,
   SettingCreate,
   SettingListResponse,
   SettingResponse,
   SettingUpdate,
 } from "@/lib/settings/types";
 
-function toQueryString(params: ListAdminSettingsParams): string {
+const toQueryString = (params: ListSettingsParams): string => {
   const searchParams = new URLSearchParams();
 
   if (params.offset !== undefined) {
@@ -23,30 +24,41 @@ function toQueryString(params: ListAdminSettingsParams): string {
   }
 
   return searchParams.toString();
-}
+};
 
-export async function listAdminSettings(
-  params: ListAdminSettingsParams = {},
-): Promise<SettingListResponse> {
+export const listSetting = async (
+  params: ListSettingsParams = {},
+): Promise<SettingListResponse> => {
   const queryString = toQueryString(params);
   const path = queryString ? `/admin/settings?${queryString}` : "/admin/settings";
 
   return authenticatedApiFetch<SettingListResponse>(path, {
     method: "GET",
   });
-}
+};
 
-export async function createSetting(data: SettingCreate): Promise<SettingResponse> {
+export const listRules = async (
+  params: ListSettingsParams = {},
+): Promise<SettingListResponse> => {
+  const queryString = toQueryString(params);
+  const path = queryString ? `/rules?${queryString}` : "/rules";
+
+  return apiFetch<SettingListResponse>(path, {
+    method: "GET",
+  });
+};
+
+export const createSetting = async (data: SettingCreate): Promise<SettingResponse> => {
   return authenticatedApiFetch<SettingResponse, SettingCreate>("/admin/settings", {
     body: data,
     method: "POST",
   });
-}
+};
 
-export async function updateSetting(
+export const updateSetting = async (
   settingId: number,
   data: SettingUpdate,
-): Promise<SettingResponse> {
+): Promise<SettingResponse> => {
   return authenticatedApiFetch<SettingResponse, SettingUpdate>(
     `/admin/settings/${settingId}`,
     {
@@ -54,17 +66,24 @@ export async function updateSetting(
       method: "PUT",
     },
   );
-}
+};
 
-export async function deleteSetting(settingId: number): Promise<void> {
+export const deleteSetting = async (settingId: number): Promise<void> => {
   await authenticatedApiFetch<null>(`/admin/settings/${settingId}`, {
     method: "DELETE",
   });
-}
+};
+
+export const listSettings = async (): Promise<SettingListResponse> => {
+  return apiFetch<SettingListResponse>("/settings", {
+    method: "GET",
+  });
+};
 
 export const settingService = {
   createSetting,
   deleteSetting,
-  listAdminSettings,
+  listSetting,
+  listSettings,
   updateSetting,
 };

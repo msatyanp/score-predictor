@@ -4,7 +4,7 @@ const ACCESS_TOKEN_KEY = "football_predictor.access_token";
 const REFRESH_TOKEN_KEY = "football_predictor.refresh_token";
 const TOKEN_TYPE_KEY = "football_predictor.token_type";
 
-function getStorage(): Storage | null {
+const getStorage = (): Storage | null => {
   if (typeof window === "undefined") {
     return null;
   }
@@ -14,17 +14,17 @@ function getStorage(): Storage | null {
   } catch {
     return null;
   }
-}
+};
 
-export function getAccessToken(): string | null {
+export const getAccessToken = (): string | null => {
   return getStorage()?.getItem(ACCESS_TOKEN_KEY) ?? null;
-}
+};
 
-export function getRefreshToken(): string | null {
+export const getRefreshToken = (): string | null => {
   return getStorage()?.getItem(REFRESH_TOKEN_KEY) ?? null;
-}
+};
 
-export function getStoredAuthTokens(): AuthTokens | null {
+export const getStoredAuthTokens = (): AuthTokens | null => {
   const storage = getStorage();
   const accessToken = getAccessToken();
   const refreshToken = getRefreshToken();
@@ -39,9 +39,9 @@ export function getStoredAuthTokens(): AuthTokens | null {
     token_type:
       storage?.getItem(TOKEN_TYPE_KEY) === "Bearer" ? "Bearer" : "bearer",
   };
-}
+};
 
-export function setAuthTokens(tokens: AuthTokens): void {
+export const setAuthTokens = (tokens: AuthTokens): void => {
   const storage = getStorage();
 
   if (!storage) {
@@ -55,9 +55,9 @@ export function setAuthTokens(tokens: AuthTokens): void {
   } catch {
     clearAuthTokens();
   }
-}
+};
 
-export function clearAuthTokens(): void {
+export const clearAuthTokens = (): void => {
   const storage = getStorage();
 
   if (!storage) {
@@ -71,4 +71,4 @@ export function clearAuthTokens(): void {
   } catch {
     return;
   }
-}
+};

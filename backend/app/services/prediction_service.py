@@ -1,6 +1,5 @@
 """Prediction business logic."""
 import logging
-
 from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException, status
@@ -73,7 +72,7 @@ class PredictionService:
             match = await self._get_match_or_404(data.match_id)
             self._ensure_prediction_is_open(match)
             values = data.model_dump()
-            self._validate_opening_team(match, data.opening_team_id)
+            self._validate_kick_off_team(match, data.kick_off_team_id)
             self._validate_goal_prediction_fields(
                 match=match,
                 team1_score=values["team1_score"],
@@ -134,8 +133,8 @@ class PredictionService:
             if not values:
                 return PredictionResponse.model_validate(prediction)
 
-            opening_team_id = values.get("opening_team_id", prediction.opening_team_id)
-            self._validate_opening_team(match, opening_team_id)
+            kick_off_team_id = values.get("kick_off_team_id", prediction.kick_off_team_id)
+            self._validate_kick_off_team(match, kick_off_team_id)
             team1_score = values.get("team1_score", prediction.team1_score)
             team2_score = values.get("team2_score", prediction.team2_score)
             first_scoring_team_id = values.get(
@@ -241,12 +240,12 @@ class PredictionService:
             )
 
     @staticmethod
-    def _validate_opening_team(match: Match, opening_team_id: int) -> None:
-        """Ensure opening team is one of the match participants."""
-        if opening_team_id not in {match.team1_id, match.team2_id}:
+    def _validate_kick_off_team(match: Match, kick_off_team_id: int) -> None:
+        """Ensure kickoff team is one of the match participants."""
+        if kick_off_team_id not in {match.team1_id, match.team2_id}:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="opening_team_id must match one of the match teams",
+                detail="kick_off_team_id must match one of the match teams",
             )
 
     @staticmethod

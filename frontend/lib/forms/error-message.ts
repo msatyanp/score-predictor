@@ -1,9 +1,9 @@
 import { ApiError } from "@/lib/api";
 import { MissingAuthTokenError } from "@/lib/auth";
 
-export function getErrorMessage(error: unknown, fallback: string): string {
+export const getErrorMessage = (error: unknown, fallback: string): string => {
   if (error instanceof MissingAuthTokenError) {
-    return "Please sign in before continuing.";
+    return "Please log in before continuing.";
   }
 
   if (error instanceof ApiError) {
@@ -15,4 +15,4 @@ export function getErrorMessage(error: unknown, fallback: string): string {
   }
 
   return fallback;
-}
+};

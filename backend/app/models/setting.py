@@ -21,6 +21,10 @@ class Setting(TimestampMixin, Base):
         nullable=False,
         index=True,
     )
+    friendly_name: Mapped[str | None] = mapped_column(
+        String(100),
+        nullable=True,
+    )
     value: Mapped[str] = mapped_column(
         Text,
         nullable=False,

@@ -1,13 +1,13 @@
 import { authenticatedApiFetch } from "@/lib/auth";
 import type {
-  ListAdminUsersParams,
+  ListUsersParams,
   UserCreate,
   UserListResponse,
   UserResponse,
   UserUpdate,
 } from "@/lib/users/types";
 
-function toQueryString(params: ListAdminUsersParams): string {
+const toQueryString = (params: ListUsersParams): string => {
   const searchParams = new URLSearchParams();
 
   if (params.offset !== undefined) {
@@ -31,30 +31,30 @@ function toQueryString(params: ListAdminUsersParams): string {
   }
 
   return searchParams.toString();
-}
+};
 
-export async function listAdminUsers(
-  params: ListAdminUsersParams = {},
-): Promise<UserListResponse> {
+export const listAdminUsers = async (
+  params: ListUsersParams = {},
+): Promise<UserListResponse> => {
   const queryString = toQueryString(params);
   const path = queryString ? `/admin/users?${queryString}` : "/admin/users";
 
   return authenticatedApiFetch<UserListResponse>(path, {
     method: "GET",
   });
-}
+};
 
-export async function createUser(data: UserCreate): Promise<UserResponse> {
+export const createUser = async (data: UserCreate): Promise<UserResponse> => {
   return authenticatedApiFetch<UserResponse, UserCreate>("/admin/users", {
     body: data,
     method: "POST",
   });
-}
+};
 
-export async function updateUser(
+export const updateUser = async (
   userId: number,
   data: UserUpdate,
-): Promise<UserResponse> {
+): Promise<UserResponse> => {
   return authenticatedApiFetch<UserResponse, UserUpdate>(
     `/admin/users/${userId}`,
     {
@@ -62,13 +62,13 @@ export async function updateUser(
       method: "PUT",
     },
   );
-}
+};
 
-export async function deleteUser(userId: number): Promise<void> {
+export const deleteUser = async (userId: number): Promise<void> => {
   await authenticatedApiFetch<null>(`/admin/users/${userId}`, {
     method: "DELETE",
   });
-}
+};
 
 export const userService = {
   createUser,

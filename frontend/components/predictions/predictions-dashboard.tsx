@@ -1,13 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 import { StatusPill } from "@/components/ui/status-pill";
 import { ApiError } from "@/lib/api";
 import { isAuthenticated, MissingAuthTokenError } from "@/lib/auth";
 import { getErrorMessage } from "@/lib/forms/error-message";
-import { GAME_DURATIONS, listUpcomingMatches } from "@/lib/matches";
+import {
+  listMatches,
+  listUpcomingMatches,
+  match_durations,
+} from "@/lib/matches";
 import type { GameDuration, MatchResponse } from "@/lib/matches";
 import {
   createPrediction,
@@ -18,6 +22,13 @@ import type {
   PredictionFields,
   PredictionResponse,
 } from "@/lib/predictions";
+import {
+  formatDateTime,
+  getMatchLabelWithFlag,
+  getPredictionStatus,
+  getStatusTone,
+  SelectableMatchCard,
+} from "../ui/match-card";
 
 type PredictionFormState = {
   firstScoringTeamId: string;
@@ -47,7 +58,7 @@ const durationLabels: Record<GameDuration, string> = {
   PENALTY: "Penalty",
 };
 
-function getMatchLabel(match: MatchResponse): string {
+function getMatchLabelText(match: MatchResponse): string {
   return `${match.team1_name} vs ${match.team2_name}`;
 }
 
@@ -72,53 +83,6 @@ function getTeamNameById(
   }
 
   return `Team #${teamId}`;
-}
-
-function formatDateTime(value: string): string {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat("en", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-}
-
-function getPredictionStatus(
-  match: MatchResponse,
-): "Locked" | "Locking soon" | "Open" {
-  if (match.match_locked) {
-    return "Locked";
-  }
-
-  const kickoff = new Date(match.match_datetime).getTime();
-  const deadline = kickoff - 60 * 60 * 1000;
-  const now = Date.now();
-
-  if (Number.isFinite(deadline) && now >= deadline) {
-    return "Locked";
-  }
-
-  if (Number.isFinite(deadline) && deadline - now <= 3 * 60 * 60 * 1000) {
-    return "Locking soon";
-  }
-
-  return "Open";
-}
-
-function getStatusTone(status: ReturnType<typeof getPredictionStatus>) {
-  if (status === "Open") {
-    return "green";
-  }
-
-  if (status === "Locking soon") {
-    return "amber";
-  }
-
-  return "red";
 }
 
 function parseNonNegativeInteger(value: string, label: string): number {
@@ -172,7 +136,7 @@ function hasGoalPrediction(
 }
 
 function isGameDuration(value: string): value is GameDuration {
-  return GAME_DURATIONS.includes(value as GameDuration);
+  return match_durations.includes(value as GameDuration);
 }
 
 function buildFormState(
@@ -185,12 +149,12 @@ function buildFormState(
         prediction.first_scoring_team_id === null
           ? ""
           : String(prediction.first_scoring_team_id),
-      gameDuration: prediction.game_duration,
+      gameDuration: prediction.match_duration,
       isGoalInFirstHalf:
         prediction.is_goal_in_first_half === null
           ? ""
           : String(prediction.is_goal_in_first_half),
-      openingTeamId: String(prediction.opening_team_id),
+      openingTeamId: String(prediction.kick_off_team_id),
       redCardCount: String(prediction.red_card_count),
       team1Score: String(prediction.team1_score),
       team2Score: String(prediction.team2_score),
@@ -204,8 +168,13 @@ function buildFormState(
   };
 }
 
+function getReferenceMatchDay(matches: MatchResponse[]): number | null {
+  return matches[0]?.match_day ?? null;
+}
+
 export function PredictionsDashboard() {
   const [authRequired, setAuthRequired] = useState(false);
+  const [currentMatchDay, setCurrentMatchDay] = useState<number | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [formState, setFormState] = useState<PredictionFormState>(emptyFormState);
   const [isLoading, setIsLoading] = useState(true);
@@ -214,7 +183,6 @@ export function PredictionsDashboard() {
   const [matches, setMatches] = useState<MatchResponse[]>([]);
   const [predictions, setPredictions] = useState<PredictionResponse[]>([]);
   const [selectedMatchId, setSelectedMatchId] = useState<number | null>(null);
-  const [upcomingMatches, setUpComingMatches] = useState<MatchResponse[]>([]);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const selectedMatch = useMemo(
@@ -228,6 +196,26 @@ export function PredictionsDashboard() {
         : undefined,
     [predictions, selectedMatch],
   );
+
+  const applyMatchSelection = useCallback((
+    nextMatches: MatchResponse[],
+    nextPredictions: PredictionResponse[],
+  ) => {
+    const firstMatch = nextMatches[0] ?? null;
+    const firstMatchPrediction = firstMatch
+      ? nextPredictions.find(
+        (prediction) => prediction.match_id === firstMatch.id,
+      )
+      : undefined;
+
+    setMatches(nextMatches);
+    setSelectedMatchId(firstMatch?.id ?? null);
+    setFormState(
+      firstMatch
+        ? buildFormState(firstMatch, firstMatchPrediction)
+        : emptyFormState,
+    );
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -244,18 +232,14 @@ export function PredictionsDashboard() {
           limit: 50,
         });
 
-        setUpComingMatches(matchList.items);
-
         const nextMatches = matchList.items;
         if (!hasAuthToken) {
           if (!isMounted) {
             return;
           }
 
-          const firstMatch = nextMatches[0] ?? null;
-          setMatches(nextMatches);
-          setSelectedMatchId(firstMatch?.id ?? null);
-          setFormState(firstMatch ? buildFormState(firstMatch) : emptyFormState);
+          applyMatchSelection(nextMatches, []);
+          setCurrentMatchDay(null);
           setAuthRequired(true);
           setPredictions([]);
           return;
@@ -267,20 +251,8 @@ export function PredictionsDashboard() {
           return;
         }
 
-        const firstMatch = nextMatches[0] ?? null;
-        const firstMatchPrediction = firstMatch
-          ? predictionList.items.find(
-            (prediction) => prediction.match_id === firstMatch.id,
-          )
-          : undefined;
-
-        setMatches(nextMatches);
-        setSelectedMatchId(firstMatch?.id ?? null);
-        setFormState(
-          firstMatch
-            ? buildFormState(firstMatch, firstMatchPrediction)
-            : emptyFormState,
-        );
+        applyMatchSelection(nextMatches, predictionList.items);
+        setCurrentMatchDay(null);
         setAuthRequired(false);
         setPredictions(predictionList.items);
       } catch (error) {
@@ -310,7 +282,7 @@ export function PredictionsDashboard() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [applyMatchSelection]);
 
   function updateField(field: keyof PredictionFormState, value: string) {
     setFormState((current) => {
@@ -341,25 +313,25 @@ export function PredictionsDashboard() {
 
     const team1Score = parseNonNegativeInteger(
       formState.team1Score,
-      "Team 1 score",
+      "Team 1",
     );
     const team2Score = parseNonNegativeInteger(
       formState.team2Score,
-      "Team 2 score",
+      "Team 2",
     );
     const hasPredictedGoals = team1Score + team2Score > 0;
 
     return {
       first_scoring_team_id: hasPredictedGoals
-        ? parsePositiveInteger(formState.firstScoringTeamId, "1st scoring team")
+        ? parsePositiveInteger(formState.firstScoringTeamId, "first scoring team")
         : null,
-      game_duration: formState.gameDuration,
+      match_duration: formState.gameDuration,
       is_goal_in_first_half: hasPredictedGoals
-        ? parseRequiredBoolean(formState.isGoalInFirstHalf, "Goal in 1st half")
+        ? parseRequiredBoolean(formState.isGoalInFirstHalf, "Goal in first half")
         : null,
-      opening_team_id: parsePositiveInteger(
+      kick_off_team_id: parsePositiveInteger(
         formState.openingTeamId,
-        "Opening team",
+        "Kick-off team",
       ),
       red_card_count: parseNonNegativeInteger(
         formState.redCardCount,
@@ -386,7 +358,7 @@ export function PredictionsDashboard() {
 
     if (!isAuthenticated()) {
       setAuthRequired(true);
-      setFormError("Please sign in before saving a prediction.");
+      setFormError("Please log in before saving a prediction.");
       return;
     }
 
@@ -438,9 +410,52 @@ export function PredictionsDashboard() {
     }
   }
 
+  function handleCardClick(match: MatchResponse) {
+    const clickedPrediction = predictions.find(
+      (prediction) => prediction.match_id === match.id,
+    );
+    setSelectedMatchId(match.id);
+    setFormState(buildFormState(match, clickedPrediction));
+    setFormError(null);
+    setSuccessMessage(null);
+  }
+
+  async function handleMatchDayChange(matchDay: number) {
+    setIsLoading(true);
+    setLoadError(null);
+    setFormError(null);
+    setSuccessMessage(null);
+
+    try {
+      const matchList = await listMatches({ matchDay });
+
+      applyMatchSelection(matchList.items, predictions);
+      setCurrentMatchDay(matchDay);
+    } catch (error) {
+      setLoadError(
+        getErrorMessage(error, `Unable to load match day ${matchDay}.`),
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   const selectedStatus = selectedMatch
     ? getPredictionStatus(selectedMatch)
     : "Locked";
+
+  const referenceMatchDay = currentMatchDay ?? getReferenceMatchDay(matches);
+  const previousMatchDay =
+    referenceMatchDay !== null && referenceMatchDay > 1
+      ? referenceMatchDay - 1
+      : null;
+  const nextMatchDay =
+    referenceMatchDay !== null ? referenceMatchDay + 1 : null;
+  const matchListTitle =
+    currentMatchDay === null
+      ? "Upcoming matches"
+      : `Match day ${currentMatchDay}`;
+
   const isFormDisabled =
     isSubmitting || authRequired || !selectedMatch || selectedStatus === "Locked";
   const hasPredictedGoals = hasGoalPrediction(formState);
@@ -458,7 +473,7 @@ export function PredictionsDashboard() {
         <div className="flex flex-col gap-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold">Login required</h2>
-            <p className="mt-1 text-sm">Sign in to submit predictions and view your prediction history.</p>
+            <p className="mt-1 text-sm">Log in to submit predictions and view your prediction history.</p>
           </div>
           <Link
             href="/login"
@@ -469,64 +484,70 @@ export function PredictionsDashboard() {
         </div>
       ) : null}
 
+      <section className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-zinc-950">
+            {matchListTitle}
+          </h2>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            aria-label="Previous match day"
+            disabled={isLoading || previousMatchDay === null}
+            onClick={() => {
+              if (previousMatchDay !== null) {
+                void handleMatchDayChange(previousMatchDay);
+              }
+            }}
+            className="grid h-10 w-10 place-items-center cursor-pointer rounded-md border border-zinc-300 bg-white text-lg font-semibold text-zinc-700 transition hover:border-emerald-700 hover:text-emerald-800 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:bg-zinc-100 disabled:text-zinc-400"
+          >
+            &lt;
+          </button>
+          <span className="min-w-28 text-center text-sm font-medium text-zinc-600">
+            {referenceMatchDay === null
+              ? "Match day"
+              : `Day ${referenceMatchDay}`}
+          </span>
+          <button
+            type="button"
+            aria-label="Next match day"
+            disabled={isLoading || nextMatchDay === null}
+            onClick={() => {
+              if (nextMatchDay !== null) {
+                void handleMatchDayChange(nextMatchDay);
+              }
+            }}
+            className="grid h-10 w-10 place-items-center cursor-pointer rounded-md border border-zinc-300 bg-white text-lg font-semibold text-zinc-700 transition hover:border-emerald-700 hover:text-emerald-800 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:bg-zinc-100 disabled:text-zinc-400"
+          >
+            &gt;
+          </button>
+        </div>
+      </section>
+
       <section className="grid gap-4 lg:grid-cols-3">
         {isLoading ? (
-          upcomingMatches.map((match) => (
+          Array.from({ length: 3 }, (_, index) => (
             <div
-              key={match.id}
-              className="h-64 rounded-md border border-zinc-200 bg-white shadow-sm"
+              key={index}
+              className="h-64 animate-pulse rounded-md border border-zinc-200 bg-white shadow-sm"
             />
           ))
         ) : matches.length > 0 ? (
           matches.map((match) => {
-            const status = getPredictionStatus(match);
             const isSelected = match.id === selectedMatchId;
+            const isSaved = predictions.some(
+              (prediction) => prediction.match_id === match.id,
+            );
 
             return (
-              <article
+              <SelectableMatchCard
                 key={match.id}
-                className={`cursor-pointer rounded-md border bg-white p-4 shadow-sm ${isSelected ? "border-emerald-700" : "border-zinc-200"
-                }`}
-                onClick={() => {
-                  const clickedPrediction = predictions.find(
-                    (prediction) => prediction.match_id === match.id,
-                  );
-                  setSelectedMatchId(match.id);
-                  setFormState(buildFormState(match, clickedPrediction));
-                  setFormError(null);
-                  setSuccessMessage(null);
-                }}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500">
-                      Match day {match.match_day}
-                    </p>
-                    <h2 className="mt-2 text-lg font-semibold text-zinc-950">
-                      {getMatchLabel(match)}
-                    </h2>
-                  </div>
-                  <StatusPill tone={getStatusTone(status)}>{status}</StatusPill>
-                </div>
-                <dl className="mt-5 grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <dt className="text-zinc-500">Kickoff</dt>
-                    <dd className="mt-1 font-medium text-zinc-950">
-                      {formatDateTime(match.match_datetime)}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-zinc-500">Prediction</dt>
-                    <dd className="mt-1 font-medium text-zinc-950">
-                      {predictions.some(
-                        (prediction) => prediction.match_id === match.id,
-                      )
-                        ? "Saved"
-                        : "Not saved"}
-                    </dd>
-                  </div>
-                </dl>
-              </article>
+                match={match}
+                isSaved={isSaved}
+                isSelected={isSelected}
+                handleCardClick={handleCardClick}
+              />
             );
           })
         ) : (
@@ -534,63 +555,80 @@ export function PredictionsDashboard() {
             No upcoming matches are available.
           </div>
         )}
-      </section>
+      </section >
 
-      <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+      <section className="flex justify-center">
+        <div className="w-[20%] mr-5 flex flex-col gap-2 justify-center text-center bg-red-100">Player1 Image</div>
         <form
-          className="rounded-md border border-zinc-200 bg-white p-5 shadow-sm"
+          className="relative w-[60%] rounded-md border border-zinc-200 bg-white p-5 shadow-sm"
           onSubmit={handleSubmit}
         >
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <div className="text-center">
               <h2 className="text-lg font-semibold text-zinc-950">
                 Match Prediction
               </h2>
               <p className="mt-1 text-sm text-zinc-500">
                 {selectedMatch
-                  ? `${getMatchLabel(selectedMatch)} - ${formatDateTime(
+                  ? `${getMatchLabelText(selectedMatch)} - ${formatDateTime(
                     selectedMatch.match_datetime,
                   )}`
                   : "Select a match to continue"}
               </p>
             </div>
+          </div>
+          <div className="absolute right-[20px] top-[20px]">
             <StatusPill tone={getStatusTone(selectedStatus)}>
               {selectedStatus}
             </StatusPill>
           </div>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            <label className="block">
-              <span className="text-sm font-medium text-zinc-700">
-                {selectedMatch ? selectedMatch.team1_name : "Team 1"} score
+            <div className="flex flex-row gap-4 justify-end">
+              <span className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+                {selectedMatch ? (
+                  <>
+                    <span>{selectedMatch.team1_name}</span>
+                    {selectedMatch.team1_flag_url ? (
+                      <img className="h-4 w-auto rounded object-cover shadow-sm" decoding="async" loading="lazy" src={selectedMatch.team1_flag_url} alt={selectedMatch.team1_name} />
+                    ) : null}
+                  </>
+                ) : "Team 1"}
               </span>
               <input
                 min="0"
+                max="100"
                 name="team1_score"
-                required
                 type="number"
-                value={formState.team1Score}
+                value={formState.team1Score || 0}
                 onChange={(event) => updateField("team1Score", event.target.value)}
-                className="mt-2 h-11 w-full rounded-md border border-zinc-300 px-3 text-zinc-950 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
+                className="mt-2 h-11 w-auto min-w-1/4 rounded-md border border-zinc-300 px-3 text-zinc-950 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
               />
-            </label>
-            <label className="block">
-              <span className="text-sm font-medium text-zinc-700">
-                {selectedMatch ? selectedMatch.team2_name : "Team 2"} score
-              </span>
+            </div>
+            <div className="flex flex-row gap-4">
               <input
                 min="0"
+                max="100"
                 name="team2_score"
-                required
                 type="number"
-                value={formState.team2Score}
+                value={formState.team2Score || 0}
                 onChange={(event) => updateField("team2Score", event.target.value)}
-                className="mt-2 h-11 w-full rounded-md border border-zinc-300 px-3 text-zinc-950 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
+                className="mt-2 h-11 w-auto min-w-1/4 rounded-md border border-zinc-300 px-3 text-zinc-950 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
               />
-            </label>
-            <label className="block">
-              <span className="text-sm font-medium text-zinc-700">
-                1st scoring team
+              <span className="flex items-center gap-2 mt-2 text-sm font-medium text-zinc-700">
+                {selectedMatch ? (
+                  <>
+                    {selectedMatch.team2_flag_url ? (
+                      <img className="h-4 w-auto rounded object-cover shadow-sm" decoding="async" loading="lazy" src={selectedMatch.team2_flag_url} alt={selectedMatch.team2_name} />
+                    ) : null}
+                    <span>{selectedMatch.team2_name}</span>
+                  </>
+                ) : "Team 2"}
+              </span>
+            </div>
+            <div className="flex flex-row gap-4 justify-end">
+              <span className="flex items-center gap-2 mt-2 text-sm font-medium text-zinc-700">
+                First scoring team
               </span>
               <select
                 disabled={areGoalTimelineFieldsDisabled}
@@ -600,7 +638,7 @@ export function PredictionsDashboard() {
                 onChange={(event) =>
                   updateField("firstScoringTeamId", event.target.value)
                 }
-                className="mt-2 h-11 w-full rounded-md border border-zinc-300 bg-white px-3 text-zinc-950 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-100 disabled:text-zinc-400"
+                className="mt-2 h-11 w-auto min-w-1/4 rounded-md border border-zinc-300 bg-white px-3 text-zinc-950 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-100 disabled:text-zinc-400"
               >
                 <option value="">
                   {hasPredictedGoals ? "Select team" : "No predicted goal"}
@@ -616,11 +654,8 @@ export function PredictionsDashboard() {
                   </>
                 ) : null}
               </select>
-            </label>
-            <label className="block">
-              <span className="text-sm font-medium text-zinc-700">
-                Goal in 1st half
-              </span>
+            </div>
+            <div className="flex flex-row gap-4">
               <select
                 disabled={areGoalTimelineFieldsDisabled}
                 name="is_goal_in_first_half"
@@ -629,7 +664,7 @@ export function PredictionsDashboard() {
                 onChange={(event) =>
                   updateField("isGoalInFirstHalf", event.target.value)
                 }
-                className="mt-2 h-11 w-full rounded-md border border-zinc-300 bg-white px-3 text-zinc-950 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-100 disabled:text-zinc-400"
+                className="mt-2 h-11 w-auto min-w-1/4 rounded-md border border-zinc-300 bg-white px-3 text-zinc-950 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-100 disabled:text-zinc-400"
               >
                 <option value="">
                   {hasPredictedGoals ? "Select" : "No predicted goal"}
@@ -637,50 +672,55 @@ export function PredictionsDashboard() {
                 <option value="true">Yes</option>
                 <option value="false">No</option>
               </select>
-            </label>
-            <label className="block">
-              <span className="text-sm font-medium text-zinc-700">
+              <span className="flex items-center gap-2 mt-2 text-sm font-medium text-zinc-700">
+                Goal in first half
+              </span>
+            </div>
+            <div className="flex flex-row gap-4 justify-end">
+              <span className="flex items-center gap-2 mt-2 text-sm font-medium text-zinc-700">
                 Total Yellow cards
               </span>
               <input
                 min="0"
+                max="100"
                 name="yellow_card_count"
-                required
                 type="number"
-                value={formState.yellowCardCount}
+                value={formState.yellowCardCount || 0}
                 onChange={(event) =>
                   updateField("yellowCardCount", event.target.value)
                 }
-                className="mt-2 h-11 w-full rounded-md border border-zinc-300 px-3 text-zinc-950 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
+                className="mt-2 h-11 w-auto min-w-1/4 rounded-md border border-zinc-300 px-3 text-zinc-950 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
               />
-            </label>
-            <label className="block">
-              <span className="text-sm font-medium text-zinc-700">
-                Total Red cards
-              </span>
+            </div>
+            <div className="flex flex-row gap-4">
               <input
                 min="0"
+                max="100"
                 name="red_card_count"
-                required
                 type="number"
-                value={formState.redCardCount}
+                value={formState.redCardCount || 0}
                 onChange={(event) => updateField("redCardCount", event.target.value)}
-                className="mt-2 h-11 w-full rounded-md border border-zinc-300 px-3 text-zinc-950 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
+                className="mt-2 h-11 w-auto min-w-1/4 rounded-md border border-zinc-300 px-3 text-zinc-950 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
               />
-            </label>
-            <label className="block">
-              <span className="text-sm font-medium text-zinc-700">
-                Opening team
+              <span className="flex items-center gap-2 mt-2 text-sm font-medium text-zinc-700">
+                Total Red cards
+              </span>
+            </div>
+            <div className="flex flex-row gap-4 justify-end">
+              <span className="flex items-center gap-2 mt-2 text-sm font-medium text-zinc-700">
+                <p>Kick-off team</p>
               </span>
               <select
-                name="opening_team_id"
-                required
+                name="kick_off_team_id"
                 value={formState.openingTeamId}
                 onChange={(event) => updateField("openingTeamId", event.target.value)}
-                className="mt-2 h-11 w-full rounded-md border border-zinc-300 bg-white px-3 text-zinc-950 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
+                className="mt-2 h-11 w-auto min-w-1/4 rounded-md border border-zinc-300 bg-white px-3 text-zinc-950 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
               >
                 {selectedMatch ? (
                   <>
+                    <option value="">
+                      Select Team
+                    </option>
                     <option value={selectedMatch.team1_id}>
                       {selectedMatch.team1_name}
                     </option>
@@ -692,25 +732,25 @@ export function PredictionsDashboard() {
                   <option value="">Select match first</option>
                 )}
               </select>
-            </label>
-            <label className="block">
-              <span className="text-sm font-medium text-zinc-700">
-                Game duration
-              </span>
+            </div>
+            <div className="flex flex-row gap-4">
               <select
-                name="game_duration"
-                required
-                value={formState.gameDuration}
+                name="match_duration"
+                disabled={selectedMatch && selectedMatch.id < 73 ? true : false}
+                value={selectedMatch && selectedMatch.id < 73 ? match_durations[0] : formState.gameDuration}
                 onChange={(event) => updateField("gameDuration", event.target.value)}
-                className="mt-2 h-11 w-full rounded-md border border-zinc-300 bg-white px-3 text-zinc-950 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
+                className={"mt-2 h-11 w-auto min-w-1/4 rounded-md border border-zinc-300 bg-white px-3 text-zinc-950 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-100 disabled:text-zinc-400"}
               >
-                {GAME_DURATIONS.map((duration) => (
+                {match_durations.map((duration) => (
                   <option key={duration} value={duration}>
                     {durationLabels[duration]}
                   </option>
                 ))}
               </select>
-            </label>
+              <span className="flex items-center gap-2 mt-2 text-sm font-medium text-zinc-700">
+                <p>Game duration</p>
+              </span>
+            </div>
           </div>
 
           {formError ? (
@@ -730,93 +770,95 @@ export function PredictionsDashboard() {
             </p>
           ) : null}
 
-          <button
-            type="submit"
-            disabled={isFormDisabled}
-            className="mt-6 inline-flex h-11 w-full items-center justify-center rounded-md bg-zinc-950 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400 sm:w-auto"
-          >
-            {isSubmitting
-              ? "Saving..."
-              : selectedPrediction
-                ? "Update prediction"
-                : "Save prediction"}
-          </button>
+          <div className="grid place-items-center w-full">
+            <button
+              type="submit"
+              disabled={isFormDisabled}
+              className="mt-6 inline-flex h-11 w-full items-center cursor-pointer justify-center rounded-md bg-zinc-950 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400 sm:w-auto"
+            >
+              {isSubmitting
+                ? "Saving..."
+                : selectedPrediction
+                  ? "Update Prediction"
+                  : "Save Prediction"}
+            </button>
+          </div>
         </form>
+        <div className="w-[20%] ml-5 flex flex-col gap-2 justify-center text-center bg-red-100">Player2 Image</div>
+      </section >
+      <section className="overflow-hidden rounded-md border border-zinc-200 bg-white shadow-sm grid gap-6">
+        <div className="border-b border-zinc-200 px-5 py-4">
+          <h2 className="text-lg font-semibold text-zinc-950">
+            Prediction history
+          </h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-zinc-200 text-sm">
+            <thead className="bg-zinc-50 text-left text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500">
+              <tr>
+                <th className="px-5 py-3">Match</th>
+                <th className="px-5 py-3">Score</th>
+                <th className="px-5 py-3">First scorer</th>
+                <th className="px-5 py-3">First half goal</th>
+                <th className="px-5 py-3">Duration</th>
+                <th className="px-5 py-3 text-right">Submitted</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-100">
+              {predictions.length > 0 ? (
+                predictions.map((prediction) => {
+                  const predictionMatch = matches.find(
+                    (match) => match.id === prediction.match_id,
+                  );
 
-        <section className="overflow-hidden rounded-md border border-zinc-200 bg-white shadow-sm">
-          <div className="border-b border-zinc-200 px-5 py-4">
-            <h2 className="text-lg font-semibold text-zinc-950">
-              Prediction history
-            </h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-zinc-200 text-sm">
-              <thead className="bg-zinc-50 text-left text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500">
+                  return (
+                    <tr key={prediction.id}>
+                      <td className="px-5 py-4 font-medium text-zinc-950">
+                        {predictionMatch
+                          ? getMatchLabelWithFlag(predictionMatch)
+                          : `Match #${prediction.match_id}`}
+                      </td>
+                      <td className="px-5 py-4 text-zinc-700">
+                        {prediction.team1_score} - {prediction.team2_score}
+                      </td>
+                      <td className="px-5 py-4 text-zinc-700">
+                        {getTeamNameById(
+                          predictionMatch,
+                          prediction.first_scoring_team_id,
+                        )}
+                      </td>
+                      <td className="px-5 py-4 text-zinc-700">
+                        {prediction.is_goal_in_first_half === null
+                          ? "No goal"
+                          : prediction.is_goal_in_first_half
+                            ? "Yes"
+                            : "No"}
+                      </td>
+                      <td className="px-5 py-4 text-zinc-700">
+                        {durationLabels[prediction.match_duration]}
+                      </td>
+                      <td className="px-5 py-4 text-right text-zinc-700">
+                        {formatDateTime(prediction.predicted_datetime)}
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
                 <tr>
-                  <th className="px-5 py-3">Match</th>
-                  <th className="px-5 py-3">Score</th>
-                  <th className="px-5 py-3">1st scorer</th>
-                  <th className="px-5 py-3">1H goal</th>
-                  <th className="px-5 py-3">Duration</th>
-                  <th className="px-5 py-3 text-right">Submitted</th>
+                  <td
+                    colSpan={6}
+                    className="px-5 py-8 text-center text-zinc-500"
+                  >
+                    {authRequired
+                      ? "Login to load your prediction history."
+                      : "No predictions submitted yet."}
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {predictions.length > 0 ? (
-                  predictions.map((prediction) => {
-                    const predictionMatch = matches.find(
-                      (match) => match.id === prediction.match_id,
-                    );
-
-                    return (
-                      <tr key={prediction.id}>
-                        <td className="px-5 py-4 font-medium text-zinc-950">
-                          {predictionMatch
-                            ? getMatchLabel(predictionMatch)
-                            : `Match #${prediction.match_id}`}
-                        </td>
-                        <td className="px-5 py-4 text-zinc-700">
-                          {prediction.team1_score} - {prediction.team2_score}
-                        </td>
-                        <td className="px-5 py-4 text-zinc-700">
-                          {getTeamNameById(
-                            predictionMatch,
-                            prediction.first_scoring_team_id,
-                          )}
-                        </td>
-                        <td className="px-5 py-4 text-zinc-700">
-                          {prediction.is_goal_in_first_half === null
-                            ? "No goal"
-                            : prediction.is_goal_in_first_half
-                              ? "Yes"
-                              : "No"}
-                        </td>
-                        <td className="px-5 py-4 text-zinc-700">
-                          {durationLabels[prediction.game_duration]}
-                        </td>
-                        <td className="px-5 py-4 text-right text-zinc-700">
-                          {formatDateTime(prediction.predicted_datetime)}
-                        </td>
-                      </tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      className="px-5 py-8 text-center text-zinc-500"
-                    >
-                      {authRequired
-                        ? "Login to load your prediction history."
-                        : "No predictions submitted yet."}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </section>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section >
     </>
   );
 }

@@ -2,6 +2,7 @@ CREATE TABLE settings (
     id INT AUTO_INCREMENT PRIMARY KEY,
 
     name VARCHAR(100) NOT NULL UNIQUE,
+    friendly_name VARCHAR(100) NOT NULL,
     value TEXT NOT NULL,
 
     -- TimestampMixin fields
@@ -12,6 +13,9 @@ CREATE TABLE settings (
     -- Constraints
     CONSTRAINT ck_settings_name_not_empty
         CHECK (CHAR_LENGTH(name) > 0),
+
+    CONSTRAINT ck_settings_friendly_name_not_empty
+        CHECK (CHAR_LENGTH(friendly_name) > 0),
 
     CONSTRAINT ck_settings_value_not_empty
         CHECK (CHAR_LENGTH(`value`) > 0),

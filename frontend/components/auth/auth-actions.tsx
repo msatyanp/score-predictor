@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { getCurrentUser, isAuthenticated, logout } from "@/lib/auth";
 import type { UserResponse } from "@/lib/auth";
 
-export function AuthActions() {
+export const AuthActions = () => {
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<UserResponse | null>(null);
@@ -16,7 +16,7 @@ export function AuthActions() {
   useEffect(() => {
     let isMounted = true;
 
-    async function loadCurrentUser() {
+    const loadCurrentUser = async () => {
       if (!isAuthenticated()) {
         if (isMounted) {
           setUser(null);
@@ -40,7 +40,7 @@ export function AuthActions() {
           setIsChecking(false);
         }
       }
-    }
+    };
 
     void loadCurrentUser();
 
@@ -49,11 +49,12 @@ export function AuthActions() {
     };
   }, [pathname]);
 
-  function handleLogout() {
+  const handleLogout = () => {
     logout();
     setUser(null);
     router.replace("/login");
-  }
+    window.location.reload();
+  };
 
   if (isChecking) {
     return (
@@ -70,7 +71,7 @@ export function AuthActions() {
         <button
           type="button"
           onClick={handleLogout}
-          className="inline-flex cursor-pointer h-10 items-center rounded-md border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50"
+          className="inline-flex cursor-pointer h-10 items-center cursor-pointer rounded-md border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50"
         >
           Logout
         </button>
@@ -82,13 +83,13 @@ export function AuthActions() {
     <div className="flex items-center gap-2">
       <Link
         href="/login"
-        className="inline-flex h-10 items-center rounded-md border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50"
+        className="inline-flex h-10 items-center rounded-md bg-white px-3 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50"
       >
         Login
       </Link>
       <Link
         href="/signup"
-        className="inline-flex h-10 items-center rounded-md bg-zinc-950 px-3 text-sm font-semibold text-white transition hover:bg-zinc-800"
+        className="inline-flex h-10 items-center rounded-md text-zinc-700 px-3 text-sm font-semibold text-white transition hover:bg-zinc-800"
       >
         Sign up
       </Link>

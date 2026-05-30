@@ -10,7 +10,7 @@ type RouteGuardProps = {
   allowedRoles?: readonly UserRole[];
 };
 
-export function RouteGuard({ children, allowedRoles }: RouteGuardProps) {
+export const RouteGuard = ({ children, allowedRoles }: RouteGuardProps) => {
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -55,4 +55,4 @@ export function RouteGuard({ children, allowedRoles }: RouteGuardProps) {
   }
 
   return <>{children}</>;
-}
+};

@@ -140,3 +140,8 @@ class TeamService:
             limit=limit,
             offset=offset,
         )
+    
+    @staticmethod
+    def team_flag_url(team) -> TeamResponse:
+        """Buld team's flag URL."""
+        return TeamService.flag_base_url + team.fifa_code

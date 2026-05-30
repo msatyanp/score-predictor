@@ -1,7 +1,7 @@
 import { apiFetch } from "@/lib/api";
 import { authenticatedApiFetch } from "@/lib/auth";
 import type {
-  ListAdminMatchesParams,
+  ListMatchesParams,
   ListUpcomingMatchesParams,
   MatchCreate,
   MatchListResponse,
@@ -9,7 +9,7 @@ import type {
   MatchUpdate,
 } from "@/lib/matches/types";
 
-function toUpcomingQueryString(params: ListUpcomingMatchesParams): string {
+const toUpcomingQueryString = (params: ListUpcomingMatchesParams): string => {
   const searchParams = new URLSearchParams();
 
   if (params.offset !== undefined) {
@@ -25,9 +25,31 @@ function toUpcomingQueryString(params: ListUpcomingMatchesParams): string {
   }
 
   return searchParams.toString();
-}
+};
 
-function toAdminQueryString(params: ListAdminMatchesParams): string {
+const toMatchQueryString = (params: ListMatchesParams): string => {
+  const searchParams = new URLSearchParams();
+
+  if (params.offset !== undefined) {
+    searchParams.set("offset", String(params.offset));
+  }
+
+  if (params.limit !== undefined) {
+    searchParams.set("limit", String(params.limit));
+  }
+
+  if (params.matchDay !== undefined) {
+    searchParams.set("match_day", String(params.matchDay));
+  }
+
+  if (params.matchStage !== undefined) {
+    searchParams.set("match_stage", params.matchStage);
+  }
+
+  return searchParams.toString();
+};
+
+const toAdminQueryString = (params: ListMatchesParams): string => {
   const searchParams = new URLSearchParams();
 
   if (params.offset !== undefined) {
@@ -47,11 +69,11 @@ function toAdminQueryString(params: ListAdminMatchesParams): string {
   }
 
   return searchParams.toString();
-}
+};
 
-export async function listUpcomingMatches(
+export const listUpcomingMatches = async (
   params: ListUpcomingMatchesParams = {},
-): Promise<MatchListResponse> {
+): Promise<MatchListResponse> => {
   const queryString = toUpcomingQueryString(params);
   const path = queryString
     ? `/matches/upcoming/?${queryString}`
@@ -60,30 +82,41 @@ export async function listUpcomingMatches(
   return apiFetch<MatchListResponse>(path, {
     method: "GET",
   });
-}
+};
 
-export async function listAdminMatches(
-  params: ListAdminMatchesParams = {},
-): Promise<MatchListResponse> {
+export const listMatches = async (
+  params: ListMatchesParams = {},
+): Promise<MatchListResponse> => {
+  const queryString = toMatchQueryString(params);
+  const path = queryString ? `/matches?${queryString}` : "/matches";
+
+  return apiFetch<MatchListResponse>(path, {
+    method: "GET",
+  });
+};
+
+export const listAdminMatches = async (
+  params: ListMatchesParams = {},
+): Promise<MatchListResponse> => {
   const queryString = toAdminQueryString(params);
   const path = queryString ? `/admin/matches?${queryString}` : "/admin/matches";
 
   return authenticatedApiFetch<MatchListResponse>(path, {
     method: "GET",
   });
-}
+};
 
-export async function createMatch(data: MatchCreate): Promise<MatchResponse> {
+export const createMatch = async (data: MatchCreate): Promise<MatchResponse> => {
   return authenticatedApiFetch<MatchResponse, MatchCreate>("/admin/matches", {
     body: data,
     method: "POST",
   });
-}
+};
 
-export async function updateMatch(
+export const updateMatch = async (
   matchId: number,
   data: MatchUpdate,
-): Promise<MatchResponse> {
+): Promise<MatchResponse> => {
   return authenticatedApiFetch<MatchResponse, MatchUpdate>(
     `/admin/matches/${matchId}`,
     {
@@ -91,18 +124,19 @@ export async function updateMatch(
       method: "PUT",
     },
   );
-}
+};
 
-export async function deleteMatch(matchId: number): Promise<void> {
+export const deleteMatch = async (matchId: number): Promise<void> => {
   await authenticatedApiFetch<null>(`/admin/matches/${matchId}`, {
     method: "DELETE",
   });
-}
+};
 
 export const matchService = {
   createMatch,
   deleteMatch,
   listAdminMatches,
+  listMatches,
   listUpcomingMatches,
   updateMatch,
 };

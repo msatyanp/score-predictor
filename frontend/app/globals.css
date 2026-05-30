@@ -39,9 +39,9 @@ textarea {
 }
 
 .football-field {
-  background:
-    linear-gradient(90deg, transparent 49.5%, rgba(255, 255, 255, 0.55) 49.5%, rgba(255, 255, 255, 0.55) 50.5%, transparent 50.5%),
-    linear-gradient(0deg, transparent 49.5%, rgba(255, 255, 255, 0.45) 49.5%, rgba(255, 255, 255, 0.45) 50.5%, transparent 50.5%),
-    radial-gradient(circle at center, transparent 0 17%, rgba(255, 255, 255, 0.55) 17.5% 18.5%, transparent 19%),
-    linear-gradient(135deg, #137346, #0f8a56 55%, #156f43);
+  background-image: url('/images/branch_tournament.avif');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  opacity: 0.8;
 }

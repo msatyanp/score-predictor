@@ -10,7 +10,7 @@ export type ApiFetchOptions<TBody = unknown> = Omit<
   headers?: HeadersInit;
 };
 
-function isBodyInit(value: unknown): value is BodyInit {
+const isBodyInit = (value: unknown): value is BodyInit => {
   return (
     typeof value === "string" ||
     value instanceof ArrayBuffer ||
@@ -19,9 +19,9 @@ function isBodyInit(value: unknown): value is BodyInit {
     (typeof FormData !== "undefined" && value instanceof FormData) ||
     (typeof ReadableStream !== "undefined" && value instanceof ReadableStream)
   );
-}
+};
 
-function serializeBody(body: unknown): BodyInit | undefined {
+const serializeBody = (body: unknown): BodyInit | undefined => {
   if (body === undefined) {
     return undefined;
   }
@@ -31,13 +31,13 @@ function serializeBody(body: unknown): BodyInit | undefined {
   }
 
   return JSON.stringify(body);
-}
+};
 
-function shouldSetJsonContentType(body: unknown): boolean {
+const shouldSetJsonContentType = (body: unknown): boolean => {
   return body !== undefined && !isBodyInit(body);
-}
+};
 
-async function parseResponse(response: Response): Promise<unknown> {
+const parseResponse = async (response: Response): Promise<unknown> => {
   if (response.status === 204) {
     return null;
   }
@@ -54,12 +54,12 @@ async function parseResponse(response: Response): Promise<unknown> {
 
   const text = await response.text();
   return text.trim() ? text : null;
-}
+};
 
-export async function apiFetch<TResponse, TBody = unknown>(
+export const apiFetch = async <TResponse, TBody = unknown>(
   path: string,
   options: ApiFetchOptions<TBody> = {},
-): Promise<TResponse> {
+): Promise<TResponse> => {
   const { accessToken, body, headers, ...requestOptions } = options;
   const requestHeaders = new Headers(headers);
 
@@ -96,4 +96,4 @@ export async function apiFetch<TResponse, TBody = unknown>(
   }
 
   return payload as TResponse;
-}
+};

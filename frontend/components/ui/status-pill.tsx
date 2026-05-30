@@ -1,6 +1,8 @@
+import { PillTone } from "@/lib/matches/types";
+
 type StatusPillProps = {
   children: React.ReactNode;
-  tone?: "amber" | "blue" | "green" | "red" | "zinc";
+  tone?: PillTone;
 };
 
 const toneClasses: Record<NonNullable<StatusPillProps["tone"]>, string> = {

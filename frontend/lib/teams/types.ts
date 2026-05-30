@@ -1,6 +1,7 @@
 export type TeamResponse = {
   created_at: string;
   fifa_code: string;
+  fifa_rank: number;
   flag_url: string;
   group: string;
   id: number;
@@ -19,7 +20,7 @@ export type TeamCreate = Omit<TeamResponse, "id" | "created_at" | "updated_at" |
 
 export type TeamUpdate = Partial<TeamCreate>;
 
-export type ListAdminTeamsParams = {
+export type ListTeamsParams = {
   group?: string;
   limit?: number;
   offset?: number;

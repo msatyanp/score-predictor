@@ -6,7 +6,7 @@ export {
   updateTeam,
 } from "@/lib/teams/team-service";
 export type {
-  ListAdminTeamsParams,
+  ListTeamsParams,
   TeamCreate,
   TeamListResponse,
   TeamResponse,

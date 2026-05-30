@@ -9,6 +9,7 @@ class GroupStandingResponse(BaseModel):
     team_id: int
     team: str
     fifa_code: str
+    fifa_rank: int
     flag_url: str
     played: int = Field(..., ge=0)
     won: int = Field(..., ge=0)
