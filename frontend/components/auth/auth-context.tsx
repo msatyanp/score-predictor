@@ -38,8 +38,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void refreshUser();
+    void refreshUser(); // eslint-disable-line react-hooks/set-state-in-effect
   }, []);
 
   const login = async (data: LoginRequest) => {

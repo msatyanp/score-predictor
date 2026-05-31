@@ -80,6 +80,7 @@ async def list_matches(
     return await service.list_matches(
         offset=offset,
         limit=limit,
+        is_admin=True,
         match_locked=match_locked,
     )
 

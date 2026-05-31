@@ -63,3 +63,7 @@ class SettingListResponse(BaseModel):
     total: int
     limit: int
     offset: int
+
+class MatchDayResponse(BaseModel):
+    """Current match day response."""
+    value: int

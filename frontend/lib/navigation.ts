@@ -1,6 +1,6 @@
 import { IconBracket, IconDashboard, IconGroups, IconHome, IconLeaderboard, IconMatches, IconPredictions, IconRules, IconSettings, IconTeams, IconUsers } from "@/components/ui/icons";
 
-export type NavigationItem = {
+type NavigationItem = {
   href: string;
   label: string;
   icon: React.ComponentType;

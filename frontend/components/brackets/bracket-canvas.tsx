@@ -260,7 +260,7 @@ const drawSlot = async (context: CanvasRenderingContext2D, slot: BracketSlot, se
   }
 
   context.fillStyle = winnerSide === "team1" ? "#047857" : textPrimary;
-  context.fillText(truncateText(context, match.team1_name.length < 12 ? match.team1_name : match.team1_short_name, teamTextWidth), slot.x + flagMaxWidth + 12, slot.y + flagMaxHeight);
+  context.fillText(truncateText(context, match.team1_name.length < 12 ? match.team1_name : match.team1_name_short, teamTextWidth), slot.x + flagMaxWidth + 12, slot.y + flagMaxHeight);
   context.fillText(truncateText(context, match.team1_score?.toString() ?? "-", teamTextWidth), slot.x + flagMaxWidth + 10 + teamTextWidth + 15, slot.y + flagMaxHeight);
 
   if (match.team2_flag_url) {
@@ -272,7 +272,7 @@ const drawSlot = async (context: CanvasRenderingContext2D, slot: BracketSlot, se
   }
 
   context.fillStyle = winnerSide === "team2" ? "#047857" : textPrimary;
-  context.fillText(truncateText(context, match.team2_name.length < 12 ? match.team2_name : match.team2_short_name, teamTextWidth), slot.x + flagMaxWidth + 12, slot.y + 2 * flagMaxHeight + 5);
+  context.fillText(truncateText(context, match.team2_name.length < 12 ? match.team2_name : match.team2_name_short, teamTextWidth), slot.x + flagMaxWidth + 12, slot.y + 2 * flagMaxHeight + 5);
   context.fillText(match.team2_score?.toString() ?? "-", slot.x + flagMaxWidth + 10 + teamTextWidth + 15, slot.y + 2 * flagMaxHeight + 5);
 
   context.font = "500 10px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
@@ -401,7 +401,6 @@ export const BracketCanvas = () => {
   const selectedMatch = selectedSlot?.match ?? null;
   const selectedRound = selectedSlot !== null ? rounds[selectedSlot.roundIndex] : null;
   const selectedStatus = getMatchStatus(selectedMatch);
-  const loadedMatchCount = rounds.reduce((total, round) => total + round.matches.length, 0);
 
   const handlePointerMove = (event: PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -433,22 +432,11 @@ export const BracketCanvas = () => {
         </div>
       ) : null}
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-zinc-200 bg-white px-4 py-3 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-        <div>
-          <h2 className="text-lg font-semibold text-zinc-950 dark:text-zinc-50">Knockout bracket</h2>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            {isLoading ? "Loading matches..." : `${loadedMatchCount} knockout matches loaded`}
-          </p>
+      {isLoading && (
+        <div className="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-700 dark:bg-blue-950 dark:text-blue-300">
+          Loading bracket matches...
         </div>
-        <button
-          type="button"
-          onClick={() => void loadBracket()}
-          disabled={isLoading}
-          className="inline-flex h-10 items-center cursor-pointer justify-center rounded-md border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-700"
-        >
-          {isLoading ? "Loading..." : "Refresh"}
-        </button>
-      </div>
+      )}
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="overflow-auto rounded-md border border-zinc-200 bg-slate-50 shadow-sm dark:border-zinc-700 dark:bg-zinc-950">

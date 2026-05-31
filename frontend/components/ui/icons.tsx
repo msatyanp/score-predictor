@@ -151,6 +151,40 @@ export const IconTrash = ({ className = "h-4 w-4" }: IconProps) => (
   </svg>
 );
 
+export const IconSearch = ({ className = "h-4 w-4" }: IconProps) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <circle cx="11" cy="11" r="8" />
+    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+  </svg>
+);
+
+export const IconX = ({ className = "h-4 w-4" }: IconProps) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+
 export const IconChevronLeft = ({ className = "h-4 w-4" }: IconProps) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -216,6 +250,7 @@ export const IconChevronsRight = ({ className = "h-4 w-4" }: IconProps) => (
     <polyline points="6 17 11 12 6 7" />
   </svg>
 );
+
 
 export const IconDashboard = ({ className = "h-4 w-4" }: IconProps) => (
   <svg

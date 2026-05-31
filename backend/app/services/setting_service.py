@@ -1,5 +1,6 @@
 """Setting business logic."""
 
+from app.schemas.setting import MatchDayResponse
 import logging
 
 from fastapi import HTTPException, status
@@ -111,6 +112,11 @@ class SettingService:
         setting = await self._get_setting_or_404(setting_id)
         await self._setting_repository.delete(setting)
 
+    async def get_current_match_day(self, setting_name: str) -> MatchDayResponse:
+        """Get current match day."""
+        setting = await self._get_setting_or_404_by_name(setting_name)
+        return MatchDayResponse.model_validate({'value': int(setting.value) if setting.value else 0})
+
     async def _get_setting_or_404(self, setting_id: int) -> Setting:
         """Fetch a setting or raise a 404."""
         setting = await self._setting_repository.get_by_id(setting_id)
@@ -121,9 +127,15 @@ class SettingService:
             )
         return setting
 
-    async def get_current_match_day(self, db: AsyncSession) -> int:
-        """Get current match day."""
-        return self._setting_repository.get("current_match_day")
+    async def _get_setting_or_404_by_name(self, setting_name: str) -> Setting:
+        """Fetch a setting or raise a 404."""
+        setting = await self._setting_repository.get_by_name(setting_name)
+        if setting is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Setting not found",
+            )
+        return setting
 
     @staticmethod
     def _build_list_response(

@@ -105,7 +105,7 @@ const formatMinutes = (value: number): string => {
   const minutes = value % 60;
 
   if (days > 0) {
-    return hours > 0 ? `${days}d ${hours}h` : `${days}d`;
+    return hours > 0 ? `${days}d ${hours}h ${minutes}m` : `${days}d ${minutes}m`;
   }
 
   if (hours > 0) {
@@ -123,7 +123,7 @@ const Home = async () => {
   return (
     <PageShell
       actions={
-        <>
+        <div className="flex flex-wrap gap-2">
           <Link
             href="/predictions"
             className="inline-flex h-10 items-center rounded-md bg-tournament-primary px-4 text-sm font-semibold text-white transition hover:bg-tournament-primary"
@@ -132,11 +132,11 @@ const Home = async () => {
           </Link>
           <Link
             href="/leaderboard"
-            className="inline-flex h-10 items-center rounded-md border border-zinc-200 dark:bg-zinc-900 dark:shadow-zinc-950 px-4 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-700"
+            className="inline-flex h-10 items-center rounded-md border border-zinc-200 px-4 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-700"
           >
             View ranks
           </Link>
-        </>
+        </div>
       }
       eyebrow="Match center"
       subtitle="Upcoming fixtures, prediction windows, standings signals, and quick access to tournament areas."
@@ -161,7 +161,7 @@ const Home = async () => {
         <div className="football-field relative min-h-64 overflow-hidden rounded-md border border-emerald-900/20 p-5 text-white shadow-sm">
           <div className="relative z-10 flex h-full flex-col justify-between">
             <div className="flex items-center justify-between">
-              <StatusPill tone={nextLock ? "green" : "zinc"}>
+              <StatusPill tone={nextLock ? "secondary" : "accent"}>
                 {nextLock ? "Live window" : "No open locks"}
               </StatusPill>
               <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold">
@@ -170,15 +170,10 @@ const Home = async () => {
             </div>
             <div>
               <p className="text-sm font-medium text-emerald-50">
-                Next lock closes in
+                Next match locks in
               </p>
-              <p className="mt-2 text-4xl font-semibold tracking-normal">
+              <p className="mt-2 text-2xl font-semibold tracking-normal">
                 {nextLock ? formatMinutes(nextLock.minutes_until_lock) : "N/A"}
-              </p>
-              <p className="mt-3 max-w-xs text-lg leading-6 text-emerald-50">
-                {nextLock
-                  ? `${nextLock.label} locks one hour before kickoff.`
-                  : "Upcoming prediction windows will appear here once matches are open."}
               </p>
             </div>
           </div>

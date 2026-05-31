@@ -30,21 +30,21 @@
   --background: #0f1117;
   --foreground: #f4f4f5;
   --color-tournament-light: #1e2130;
-  /* USA — lightened for dark bg */
-  --color-tournament-primary: #93a8c8;
-  --color-tournament-primary-hover: #b0c2db;
-  --color-tournament-primary-light: #6b82a6;
-  --color-tournament-primary-faint: #3a4e6b;
+  /* USA */
+  --color-tournament-primary: #1E293B;
+  --color-tournament-primary-hover: #2f415d;
+  --color-tournament-primary-light: #4a5c7b;
+  --color-tournament-primary-faint: #7486a8;
   /* Mexico */
-  --color-tournament-secondary: #4ade80;
-  --color-tournament-secondary-hover: #86efac;
-  --color-tournament-secondary-light: #22c55e;
-  --color-tournament-secondary-faint: #14532d;
+  --color-tournament-secondary: #15803D;
+  --color-tournament-secondary-hover: #1fbd59;
+  --color-tournament-secondary-light: #73c787;
+  --color-tournament-secondary-faint: #b6e8c2;
   /* Canada */
-  --color-tournament-accent: #f87171;
-  --color-tournament-accent-hover: #fca5a5;
-  --color-tournament-accent-light: #ef4444;
-  --color-tournament-accent-faint: #7f1d1d;
+  --color-tournament-accent: #DC2626;
+  --color-tournament-accent-hover: #f43f3f;
+  --color-tournament-accent-light: #ec8989;
+  --color-tournament-accent-faint: #f69d9d;
 }
 
 @theme inline {
@@ -81,7 +81,7 @@ textarea {
 }
 
 .football-field {
-  background-image: url('/images/branch_tournament.avif');
+  background-image: url('/images/logo-tournament.avif');
   background-repeat: no-repeat;
   background-position: center;
   background-size: cover;
@@ -115,6 +115,11 @@ textarea {
 /* Primary Colors */
 .text-tournament-primary {
   color: var(--color-tournament-primary);
+  font-weight: bold;
+}
+
+.text-tournament-primary-light {
+  color: var(--color-tournament-primary-light);
   font-weight: bold;
 }
 

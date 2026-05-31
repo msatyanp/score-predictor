@@ -30,7 +30,9 @@ import {
   SelectableMatchCard,
 } from "../ui/match-card";
 import Image from "next/image";
-import { IconSave } from "../ui/icons";
+import { IconChevronLeft, IconChevronRight, IconSave } from "../ui/icons";
+import { getCurrentMatchDay } from "@/lib/matches/match-service";
+import ImageWithFallback from "../ui/image-with-fallback";
 
 type PredictionFormState = {
   firstScoringTeamId: string;
@@ -234,6 +236,13 @@ export const PredictionsDashboard = () => {
           limit: 50,
         });
 
+        let matchDaySetting = null;
+        try {
+          matchDaySetting = await getCurrentMatchDay();
+        } catch {
+          console.warn("Failed to load match day setting");
+        }
+
         const nextMatches = matchList.items;
         if (!hasAuthToken) {
           if (!isMounted) {
@@ -241,7 +250,7 @@ export const PredictionsDashboard = () => {
           }
 
           applyMatchSelection(nextMatches, []);
-          setCurrentMatchDay(null);
+          setCurrentMatchDay(matchDaySetting?.value ? Number(matchDaySetting.value) : null);
           setAuthRequired(true);
           setPredictions([]);
           return;
@@ -466,9 +475,9 @@ export const PredictionsDashboard = () => {
 
   const areGoalTimelineFieldsDisabled = !hasPredictedGoals;
 
-  const inputCls = "mt-2 h-11 w-auto min-w-1/4 rounded-md border border-zinc-300 px-3 text-zinc-950 outline-none transition focus:border-tournament-primary focus:ring-2 focus:ring-emerald-100 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-50 dark:focus:ring-emerald-900";
-  const selectCls = "mt-2 h-11 w-auto min-w-1/4 rounded-md border border-zinc-300 dark:bg-zinc-900 dark:shadow-zinc-950 px-3 text-zinc-950 outline-none transition focus:border-tournament-primary focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-100 disabled:text-zinc-400 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-50 dark:disabled:bg-zinc-700 dark:disabled:text-zinc-500 dark:focus:ring-emerald-900";
-  const labelTextCls = "flex items-center gap-2 mt-2 text-sm font-medium text-zinc-700 dark:text-zinc-300";
+  const inputCls = "mt-1 h-11 w-full rounded-md border border-zinc-300 px-3 text-zinc-950 outline-none transition focus:border-tournament-primary focus:ring-2 focus:ring-emerald-100 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-50 dark:focus:ring-emerald-900";
+  const selectCls = "mt-1 h-11 w-full rounded-md border border-zinc-300 px-3 text-zinc-950 outline-none transition focus:border-tournament-primary focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-100 disabled:text-zinc-400 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-50 dark:disabled:bg-zinc-700 dark:disabled:text-zinc-500 dark:focus:ring-emerald-900";
+  const labelTextCls = "flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300";
 
   return (
     <>
@@ -482,7 +491,7 @@ export const PredictionsDashboard = () => {
         <div className="flex flex-col gap-3 rounded-md border border-amber-200 px-4 py-4 text-sm dark:text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-zinc-300 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold">Login required</h2>
-            <p className="mt-1 text-sm">Log in to submit predictions and view your prediction history.</p>
+            <p className="mt-1 text-sm">Log in to submit your predictions.</p>
           </div>
           <Link
             href="/login"
@@ -511,12 +520,12 @@ export const PredictionsDashboard = () => {
             }}
             className="grid h-10 w-10 place-items-center cursor-pointer rounded-md border border-zinc-300 dark:bg-zinc-900 dark:shadow-zinc-950 text-lg font-semibold text-zinc-700 transition hover:border-tournament-primary hover:text-emerald-800 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:bg-zinc-100 disabled:text-zinc-400 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-tournament-primary dark:disabled:border-zinc-700 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-600"
           >
-            &lt;
+            <IconChevronLeft />
           </button>
           <span className="min-w-28 text-center text-sm font-medium text-zinc-600 dark:text-zinc-400">
             {referenceMatchDay === null
               ? "Match day"
-              : `Day ${referenceMatchDay}`}
+              : `Match Day ${referenceMatchDay}`}
           </span>
           <button
             type="button"
@@ -529,7 +538,7 @@ export const PredictionsDashboard = () => {
             }}
             className="grid h-10 w-10 place-items-center cursor-pointer rounded-md border border-zinc-300 dark:bg-zinc-900 dark:shadow-zinc-950 text-lg font-semibold text-zinc-700 transition hover:border-tournament-primary hover:text-emerald-800 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:bg-zinc-100 disabled:text-zinc-400 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-tournament-primary dark:disabled:border-zinc-700 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-600"
           >
-            &gt;
+            <IconChevronRight />
           </button>
         </div>
       </section>
@@ -566,10 +575,12 @@ export const PredictionsDashboard = () => {
         )}
       </section >
 
-      <section className="flex justify-center">
-        <div className="w-[20%] mr-5 flex flex-col gap-2 justify-center text-center bg-red-100 dark:bg-red-950">Player1 Image</div>
+      <section className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-center">
+        <div className="hidden lg:flex w-40 h-[525px] shrink-0 grow basis-0 flex-col gap-2 items-center justify-center text-center bg-red-100 dark:bg-red-950 rounded-md min-h-48">
+          <ImageWithFallback width={525} height={525} src={"/images/players/" + selectedMatch?.team1_name_short?.toLowerCase() + ".png"} alt={selectedMatch?.team1_name || "Captain Image"} />
+        </div>{""}
         <form
-          className="relative w-[60%] rounded-md border border-zinc-200 dark:bg-zinc-900 dark:shadow-zinc-950 p-5 shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
+          className="relative w-full lg:max-w-2xl rounded-md border border-zinc-200 dark:bg-zinc-900 dark:shadow-zinc-950 p-4 sm:p-5 shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
           onSubmit={handleSubmit}
         >
           <div className="flex flex-wrap items-center justify-center gap-3">
@@ -592,174 +603,92 @@ export const PredictionsDashboard = () => {
             </StatusPill>
           </div>
 
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            <div className="flex flex-row gap-4 justify-end">
+          <div className="mt-6 grid gap-4 sm:grid-cols-2" id="prediction-fields">
+            {/* Score row – Team 1 */}
+            <label className="flex flex-col gap-1">
               <span className={labelTextCls}>
                 {selectedMatch ? (
                   <>
-                    <span>{selectedMatch.team1_name}</span>
-                    {selectedMatch.team1_flag_url ? (
-                      <Image width={30} height={30} className="min-h-[25px] w-auto  rounded object-cover shadow-sm" decoding="async" loading="lazy" src={selectedMatch.team1_flag_url} alt={selectedMatch.team1_name} />
-                    ) : null}
+                    {selectedMatch.team1_flag_url && (
+                      <Image width={24} height={24} className="min-h-[30px] w-auto rounded object-cover shadow-sm" decoding="async" loading="lazy" src={selectedMatch.team1_flag_url} alt={selectedMatch.team1_name} />
+                    )}
+                    <span>{selectedMatch.team1_name} Score</span>
                   </>
-                ) : "Team 1"}
+                ) : "Team 1 Score"}
               </span>
-              <input
-                min="0"
-                max="100"
-                name="team1_score"
-                type="number"
-                value={formState.team1Score || 0}
-                onChange={(event) => updateField("team1Score", event.target.value)}
-                className={inputCls}
-              />
-            </div>
-            <div className="flex flex-row gap-4">
-              <input
-                min="0"
-                max="100"
-                name="team2_score"
-                type="number"
-                value={formState.team2Score || 0}
-                onChange={(event) => updateField("team2Score", event.target.value)}
-                className={inputCls}
-              />
+              <input min="0" max="100" name="team1_score" type="number" value={formState.team1Score || 0} onChange={(e) => updateField("team1Score", e.target.value)} className={inputCls} />
+            </label>
+
+            {/* Score row – Team 2 */}
+            <label className="flex flex-col gap-1">
               <span className={labelTextCls}>
                 {selectedMatch ? (
                   <>
-                    {selectedMatch.team2_flag_url ? (
-                      <Image width={30} height={30} className="min-h-[25px] w-auto  rounded object-cover shadow-sm" decoding="async" loading="lazy" src={selectedMatch.team2_flag_url} alt={selectedMatch.team2_name} />
-                    ) : null}
-                    <span>{selectedMatch.team2_name}</span>
+                    {selectedMatch.team2_flag_url && (
+                      <Image width={24} height={24} className="min-h-[30px] w-auto rounded object-cover shadow-sm" decoding="async" loading="lazy" src={selectedMatch.team2_flag_url} alt={selectedMatch.team2_name} />
+                    )}
+                    <span>{selectedMatch.team2_name} Score</span>
                   </>
-                ) : "Team 2"}
+                ) : "Team 2 Score"}
               </span>
-            </div>
-            <div className="flex flex-row gap-4 justify-end">
-              <span className={labelTextCls}>
-                First Scoring Team
-              </span>
-              <select
-                disabled={areGoalTimelineFieldsDisabled}
-                name="first_scoring_team_id"
-                required={hasPredictedGoals}
-                value={formState.firstScoringTeamId}
-                onChange={(event) =>
-                  updateField("firstScoringTeamId", event.target.value)
-                }
-                className={selectCls}
-              >
-                <option value="">
-                  {hasPredictedGoals ? "Select Team" : "Score is 0"}
-                </option>
-                {selectedMatch ? (
-                  <>
-                    {Number(formState.team1Score || 0) > 0 && (<option value={selectedMatch.team1_id}>
-                      {selectedMatch.team1_name}
-                    </option>)}
-                    {Number(formState.team2Score || 0) > 0 && <option value={selectedMatch.team2_id}>
-                      {selectedMatch.team2_name}
-                    </option>}
-                  </>
-                ) : null}
+              <input min="0" max="100" name="team2_score" type="number" value={formState.team2Score || 0} onChange={(e) => updateField("team2Score", e.target.value)} className={inputCls} />
+            </label>
+
+            {/* First Scoring Team */}
+            <label className="flex flex-col gap-1">
+              <span className={labelTextCls}>First Scoring Team</span>
+              <select disabled={areGoalTimelineFieldsDisabled} name="first_scoring_team_id" required={hasPredictedGoals} value={formState.firstScoringTeamId} onChange={(e) => updateField("firstScoringTeamId", e.target.value)} className={selectCls}>
+                <option value="">{hasPredictedGoals ? "Select Team" : "Score is 0"}</option>
+                {selectedMatch && (<>
+                  {Number(formState.team1Score || 0) > 0 && <option value={selectedMatch.team1_id}>{selectedMatch.team1_name}</option>}
+                  {Number(formState.team2Score || 0) > 0 && <option value={selectedMatch.team2_id}>{selectedMatch.team2_name}</option>}
+                </>)}
               </select>
-            </div>
-            <div className="flex flex-row gap-4">
-              <select
-                disabled={areGoalTimelineFieldsDisabled}
-                name="is_goal_in_first_half"
-                required={hasPredictedGoals}
-                value={formState.isGoalInFirstHalf}
-                onChange={(event) =>
-                  updateField("isGoalInFirstHalf", event.target.value)
-                }
-                className={selectCls}
-              >
-                <option value="">
-                  {hasPredictedGoals ? "Select Option" : "Score is 0"}
-                </option>
+            </label>
+
+            {/* Goal in first half */}
+            <label className="flex flex-col gap-1">
+              <span className={labelTextCls}>Goal in First Half?</span>
+              <select disabled={areGoalTimelineFieldsDisabled} name="is_goal_in_first_half" required={hasPredictedGoals} value={formState.isGoalInFirstHalf} onChange={(e) => updateField("isGoalInFirstHalf", e.target.value)} className={selectCls}>
+                <option value="">{hasPredictedGoals ? "Select Option" : "Score is 0"}</option>
                 <option value="true">Yes</option>
                 <option value="false">No</option>
               </select>
-              <span className={labelTextCls}>
-                Goal in First Half ?
-              </span>
-            </div>
-            <div className="flex flex-row gap-4 justify-end">
-              <span className={labelTextCls}>
-                Total Yellow Cards
-              </span>
-              <input
-                min="0"
-                max="100"
-                name="yellow_card_count"
-                type="number"
-                value={formState.yellowCardCount || 0}
-                onChange={(event) =>
-                  updateField("yellowCardCount", event.target.value)
-                }
-                className={inputCls}
-              />
-            </div>
-            <div className="flex flex-row gap-4">
-              <input
-                min="0"
-                max="100"
-                name="red_card_count"
-                type="number"
-                value={formState.redCardCount || 0}
-                onChange={(event) => updateField("redCardCount", event.target.value)}
-                className={inputCls}
-              />
-              <span className={labelTextCls}>
-                Total Red cards
-              </span>
-            </div>
-            <div className="flex flex-row gap-4 justify-end">
-              <span className={labelTextCls}>
-                <p>Kick-off team</p>
-              </span>
-              <select
-                name="kick_off_team_id"
-                value={formState.openingTeamId}
-                onChange={(event) => updateField("openingTeamId", event.target.value)}
-                className={selectCls}
-              >
+            </label>
+
+            {/* Yellow cards */}
+            <label className="flex flex-col gap-1">
+              <span className={labelTextCls}>Total Yellow Cards</span>
+              <input min="0" max="100" name="yellow_card_count" type="number" value={formState.yellowCardCount || 0} onChange={(e) => updateField("yellowCardCount", e.target.value)} className={inputCls} />
+            </label>
+
+            {/* Red cards */}
+            <label className="flex flex-col gap-1">
+              <span className={labelTextCls}>Total Red Cards</span>
+              <input min="0" max="100" name="red_card_count" type="number" value={formState.redCardCount || 0} onChange={(e) => updateField("redCardCount", e.target.value)} className={inputCls} />
+            </label>
+
+            {/* Kick-off team */}
+            <label className="flex flex-col gap-1">
+              <span className={labelTextCls}>Kick-off Team</span>
+              <select name="kick_off_team_id" value={formState.openingTeamId} onChange={(e) => updateField("openingTeamId", e.target.value)} className={selectCls}>
                 {selectedMatch ? (
                   <>
-                    <option value="">
-                      Select Team
-                    </option>
-                    <option value={selectedMatch.team1_id}>
-                      {selectedMatch.team1_name}
-                    </option>
-                    <option value={selectedMatch.team2_id}>
-                      {selectedMatch.team2_name}
-                    </option>
+                    <option value="">Select Team</option>
+                    <option value={selectedMatch.team1_id}>{selectedMatch.team1_name}</option>
+                    <option value={selectedMatch.team2_id}>{selectedMatch.team2_name}</option>
                   </>
-                ) : (
-                  <option value="">Select match first</option>
-                )}
+                ) : <option value="">Select match first</option>}
               </select>
-            </div>
-            <div className="flex flex-row gap-4">
-              <select
-                name="match_duration"
-                disabled={selectedMatch && selectedMatch.match_stage === "GROUP" ? true : false}
-                value={selectedMatch && selectedMatch.match_stage === "GROUP" ? matchDurations[0] : formState.matchDuration}
-                onChange={(event) => updateField("matchDuration", event.target.value)}
-                className={selectCls}
-              >
-                {matchDurations.map((duration) => (
-                  <option key={duration} value={duration}>
-                    {durationLabels[duration]}
-                  </option>
-                ))}
+            </label>
+
+            {/* Match duration */}
+            <label className="flex flex-col gap-1">
+              <span className={labelTextCls}>Match Duration</span>
+              <select name="match_duration" disabled={!!(selectedMatch && selectedMatch.match_stage === "GROUP")} value={selectedMatch && selectedMatch.match_stage === "GROUP" ? matchDurations[0] : formState.matchDuration} onChange={(e) => updateField("matchDuration", e.target.value)} className={selectCls}>
+                {matchDurations.map((d) => <option key={d} value={d}>{durationLabels[d]}</option>)}
               </select>
-              <span className={labelTextCls}>
-                <p>Match duration</p>
-              </span>
-            </div>
+            </label>
           </div>
 
           {formError ? (
@@ -796,8 +725,10 @@ export const PredictionsDashboard = () => {
             </button>
           </div>
         </form>
-        <div className="w-[20%] ml-5 flex flex-col gap-2 justify-center text-center bg-red-100 dark:bg-red-950">Player2 Image</div>
-      </section >
+        <div className="hidden lg:flex w-40 h-[525px] shrink-0 grow basis-0 flex-col gap-2 items-center justify-center text-center bg-red-100 dark:bg-red-950 rounded-md min-h-48">
+          <ImageWithFallback width={525} height={525} src={"/images/players/" + selectedMatch?.team2_name_short?.toLowerCase() + ".png"} alt={selectedMatch?.team2_name || "Captain Image"} />
+        </div>
+      </section>
       <section className="overflow-hidden rounded-md border border-zinc-200 dark:bg-zinc-900 dark:shadow-zinc-950 shadow-sm grid gap-6 dark:border-zinc-700 dark:bg-zinc-900">
         <div className="border-b border-zinc-200 px-5 py-4 dark:border-zinc-700">
           <h2 className="text-lg font-semibold text-zinc-950 dark:text-zinc-50">
@@ -805,7 +736,7 @@ export const PredictionsDashboard = () => {
           </h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="min-w-[1280px] divide-y divide-zinc-200 text-sm dark:divide-zinc-700">
+          <table className="min-w-full divide-y divide-zinc-200 text-sm dark:divide-zinc-700">
             <thead className="bg-zinc-50 text-left text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
               <tr>
                 <th className="px-5 py-3">Match</th>

@@ -79,6 +79,9 @@ const AdminPage = () => {
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+      <section className="flex flex-wrap items-center content-center min-h-[40px] justify-between gap-3">
+        <div><h2 className="text-zinc-950 dark:text-zinc-50">App Configurations</h2></div>
+      </section>
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-2">
         <section className="grid gap-4 md:grid-cols-1">
           {adminMetrics.map((metric) => (

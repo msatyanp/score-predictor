@@ -4,6 +4,7 @@ import type {
   ListMatchesParams,
   ListUpcomingMatchesParams,
   MatchCreate,
+  MatchDayResponse,
   MatchListResponse,
   MatchResponse,
   MatchUpdate,
@@ -83,6 +84,12 @@ export const listUpcomingMatches = async (
     method: "GET",
   });
 };
+
+export const getCurrentMatchDay = async (): Promise<MatchDayResponse> => {
+  return apiFetch<MatchDayResponse>("/matchday", {
+    method: "GET",
+  });
+}
 
 export const listMatches = async (
   params: ListMatchesParams = {},

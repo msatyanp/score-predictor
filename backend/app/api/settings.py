@@ -1,5 +1,6 @@
 """Setting API routes."""
 
+from app.schemas.setting import MatchDayResponse
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Path, Query, Response, status
@@ -16,8 +17,8 @@ from app.schemas.setting import (
 from app.services.setting_service import SettingService
 
 router = APIRouter(
-    prefix="/rules",
-    tags=["Rules"]
+    prefix="",
+    tags=["Rules", "Matches"]
 )
 
 admin_router = APIRouter(
@@ -27,7 +28,7 @@ admin_router = APIRouter(
 )
 
 @router.get(
-    "/",
+    "/rules",
     response_model=SettingListResponse,
     summary="List rules",
 )
@@ -44,6 +45,18 @@ async def list_rules(
         limit=limit,
         search=search,
     )
+
+@router.get(
+    "/matchday",
+    response_model=MatchDayResponse,
+    summary="Read current match day",
+)
+async def get_current_match_day(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> MatchDayResponse:
+    """Return current match day."""
+    service = SettingService(db)
+    return await service.get_current_match_day('current_match_day')
 
 @admin_router.get(
     "",

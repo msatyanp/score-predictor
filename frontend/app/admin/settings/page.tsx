@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import { Modal } from "@/components/ui/modal";
 import { getErrorMessage } from "@/lib/forms/error-message";
@@ -11,7 +11,7 @@ import {
   updateSetting,
 } from "@/lib/settings";
 import type { SettingCreate, SettingResponse } from "@/lib/settings";
-import { IconCancel, IconPencil, IconPlus, IconSave, IconTrash } from "@/components/ui/icons";
+import { IconCancel, IconPencil, IconPlus, IconSave, IconSearch, IconTrash, IconX } from "@/components/ui/icons";
 
 const emptyFormState: SettingCreate = {
   name: "",
@@ -19,10 +19,14 @@ const emptyFormState: SettingCreate = {
   value: "",
 };
 
+const inputCls = "mt-2 h-11 w-full rounded-md border border-zinc-300 bg-white px-3 text-zinc-950 outline-none transition focus:border-tournament-primary focus:ring-2 focus:ring-emerald-100 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder-zinc-500 dark:focus:border-zinc-400 dark:focus:ring-zinc-700";
+const labelCls = "text-sm font-medium text-zinc-700 dark:text-zinc-300";
+
 const AdminSettingsPage = () => {
   const [settings, setSettings] = useState<SettingResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSettingId, setEditingSettingId] = useState<number | null>(null);
@@ -49,18 +53,27 @@ const AdminSettingsPage = () => {
           setLoadError(getErrorMessage(error, "Unable to load settings."));
         }
       } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
+        if (isMounted) setIsLoading(false);
       }
     };
 
     void loadSettings();
-
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, []);
+
+  const filteredSettings = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return settings;
+    return settings.filter((s) =>
+      s.name.toLowerCase().includes(q) ||
+      s.friendly_name.toLowerCase().includes(q) ||
+      s.value.toLowerCase().includes(q)
+    );
+  }, [settings, searchQuery]);
+
+  const handleSearch = (value: string) => {
+    setSearchQuery(value);
+  };
 
   const handleOpenCreateModal = () => {
     setEditingSettingId(null);
@@ -80,9 +93,7 @@ const AdminSettingsPage = () => {
     setIsModalOpen(true);
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-  };
+  const handleCloseModal = () => setIsModalOpen(false);
 
   const updateField = (field: keyof SettingCreate, value: string) => {
     setFormState((prev) => ({ ...prev, [field]: value }));
@@ -102,9 +113,7 @@ const AdminSettingsPage = () => {
         if (editingSettingId) {
           return current.map((s) => (s.id === savedSetting.id ? savedSetting : s));
         }
-        return [...current, savedSetting].sort((a, b) =>
-          a.name.localeCompare(b.name)
-        );
+        return [...current, savedSetting].sort((a, b) => a.name.localeCompare(b.name));
       });
       setIsModalOpen(false);
     } catch (error) {
@@ -115,9 +124,7 @@ const AdminSettingsPage = () => {
   };
 
   const handleDelete = async (setting: SettingResponse) => {
-    if (!window.confirm(`Delete setting ${setting.name}?`)) {
-      return;
-    }
+    if (!window.confirm(`Delete setting ${setting.name}?`)) return;
 
     setIsDeletingId(setting.id);
     try {
@@ -130,10 +137,12 @@ const AdminSettingsPage = () => {
     }
   };
 
+  const isSearchActive = searchQuery.trim().length > 0;
+
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
       <section className="flex flex-wrap items-center justify-between gap-3">
-        <div><h2>App Configurations</h2></div>
+        <div><h2 className="text-zinc-950 dark:text-zinc-50">App Configurations</h2></div>
         <button
           className="inline-flex h-10 items-center gap-2 rounded-md bg-tournament-primary px-4 text-sm font-semibold text-white transition cursor-pointer hover:bg-tournament-primary"
           type="button"
@@ -144,6 +153,30 @@ const AdminSettingsPage = () => {
         </button>
       </section>
 
+      {/* Search bar */}
+      <div className="relative">
+        <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-zinc-400 dark:text-zinc-500">
+          <IconSearch className="h-4 w-4" />
+        </span>
+        <input
+          type="search"
+          value={searchQuery}
+          onChange={(e) => handleSearch(e.target.value)}
+          placeholder="Search by name, friendly name, or value…"
+          className="h-10 w-full rounded-md border border-zinc-200 bg-white pl-9 pr-9 text-sm text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-tournament-primary focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder:text-zinc-500 dark:focus:ring-emerald-900"
+        />
+        {isSearchActive && (
+          <button
+            type="button"
+            aria-label="Clear search"
+            onClick={() => handleSearch("")}
+            className="absolute inset-y-0 right-3 flex items-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+          >
+            <IconX className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
       {loadError ? (
         <section className="rounded-md border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-800 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-400">
           {loadError}
@@ -151,10 +184,18 @@ const AdminSettingsPage = () => {
       ) : null}
 
       <section className="overflow-hidden rounded-md border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+        {isSearchActive && (
+          <div className="border-b border-zinc-100 px-5 py-2.5 text-xs text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+            {filteredSettings.length === 0
+              ? `No settings match "${searchQuery}"`
+              : `${filteredSettings.length} of ${settings.length} setting${settings.length !== 1 ? "s" : ""} match "${searchQuery}"`}
+          </div>
+        )}
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-zinc-200 text-sm dark:divide-zinc-700">
             <thead className="bg-zinc-50 text-left text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500 dark:bg-zinc-800/70 dark:text-zinc-400">
               <tr>
+                <th className="px-5 py-3">S.N.</th>
                 <th className="px-5 py-3">Name</th>
                 <th className="px-5 py-3">Friendly Name</th>
                 <th className="px-5 py-3">Value</th>
@@ -164,18 +205,19 @@ const AdminSettingsPage = () => {
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
               {isLoading ? (
                 <tr>
-                  <td colSpan={3} className="px-5 py-8 text-center text-zinc-500 dark:text-zinc-400">
-                    Loading settings...
+                  <td colSpan={5} className="px-5 py-8 text-center text-zinc-500 dark:text-zinc-400">
+                    Loading settings…
                   </td>
                 </tr>
-              ) : settings.length > 0 ? (
-                settings.map((setting) => (
+              ) : filteredSettings.length > 0 ? (
+                filteredSettings.map((setting, idx) => (
                   <tr key={setting.id} className="transition-colors hover:bg-zinc-50/70 dark:hover:bg-zinc-800/40">
+                    <td className="px-5 py-4 text-zinc-700 dark:text-zinc-300">{idx + 1}</td>
                     <td className="px-5 py-4 font-medium text-zinc-950 dark:text-zinc-100">
                       {setting.name}
                     </td>
                     <td className="px-5 py-4 text-zinc-700 dark:text-zinc-300">{setting.friendly_name}</td>
-                    <td className="px-5 py-4 text-zinc-700 dark:text-zinc-300">{setting.value}</td>
+                    <td className="max-w-xs truncate px-5 py-4 text-zinc-700 dark:text-zinc-300">{setting.value}</td>
                     <td className="px-5 py-4 text-right">
                       <div className="flex justify-end gap-3">
                         <button
@@ -204,7 +246,7 @@ const AdminSettingsPage = () => {
               ) : (
                 <tr>
                   <td colSpan={4} className="px-5 py-8 text-center text-zinc-500 dark:text-zinc-400">
-                    No settings found.
+                    {isSearchActive ? `No settings match "${searchQuery}".` : "No settings found."}
                   </td>
                 </tr>
               )}
@@ -220,27 +262,27 @@ const AdminSettingsPage = () => {
       >
         <form onSubmit={(e) => void handleSubmit(e)} className="flex flex-col gap-4">
           <label className="block">
-            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Name</span>
+            <span className={labelCls}>Name</span>
             <input
               type="text"
               required
               value={formState.name}
               onChange={(e) => updateField("name", e.target.value)}
-              className="mt-2 h-11 w-full rounded-md border border-zinc-300 bg-white px-3 text-zinc-950 outline-none transition focus:border-tournament-primary focus:ring-2 focus:ring-emerald-100 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder-zinc-500 dark:focus:border-zinc-400 dark:focus:ring-zinc-700"
+              className={inputCls}
             />
           </label>
           <label className="block">
-            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Friendly Name</span>
+            <span className={labelCls}>Friendly Name</span>
             <input
               type="text"
               required
               value={formState.friendly_name}
               onChange={(e) => updateField("friendly_name", e.target.value)}
-              className="mt-2 h-11 w-full rounded-md border border-zinc-300 bg-white px-3 text-zinc-950 outline-none transition focus:border-tournament-primary focus:ring-2 focus:ring-emerald-100 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder-zinc-500 dark:focus:border-zinc-400 dark:focus:ring-zinc-700"
+              className={inputCls}
             />
           </label>
           <label className="block">
-            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Value</span>
+            <span className={labelCls}>Value</span>
             <textarea
               rows={4}
               required
@@ -271,7 +313,7 @@ const AdminSettingsPage = () => {
               className="inline-flex h-11 px-4 items-center gap-2 cursor-pointer rounded-md bg-tournament-primary px-4 text-sm font-semibold text-white transition hover:bg-tournament-primary disabled:cursor-not-allowed disabled:bg-zinc-400"
             >
               <IconSave className="h-4 w-4" />
-              {isSubmitting ? "Saving..." : "Save Setting"}
+              {isSubmitting ? "Saving…" : "Save Setting"}
             </button>
           </div>
         </form>

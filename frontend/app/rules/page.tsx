@@ -3,7 +3,11 @@
 import { useEffect, useState } from "react";
 import { PageShell } from "@/components/ui/page-shell";
 import { listRules } from "@/lib/settings";
-import type { RuleBand } from "@/lib/view-data";
+
+export type RuleBand = {
+  items: string[];
+  title: string;
+};
 
 const RulesPage = () => {
   const [ruleBands, setRuleBands] = useState<RuleBand[]>([]);
@@ -55,7 +59,7 @@ const RulesPage = () => {
               <ul className="mt-4 space-y-3 text-sm leading-6 text-zinc-700 dark:text-zinc-300">
                 {band.items.map((item, index) => (
                   <li key={`${band.title}-${index}`} className="flex gap-3">
-                    <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-emerald-700 dark:bg-emerald-400" />
+                    <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-tournament-secondary" />
                     <span>{item}</span>
                   </li>
                 ))}

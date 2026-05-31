@@ -16,11 +16,13 @@ from app.api.users import admin_router as admin_users_router
 from app.api.users import leaderboard_router
 from app.api.users import router as users_router
 from app.core.config import settings
+from app.workers.scheduler import lifespan
 
 app = FastAPI(
     title="Match Predictor API",
     version="1.0.0",
     description="Football Match Tournament Prediction Platform API",
+    lifespan=lifespan,
 )
 
 # ── Middleware ───────────────────────────────────────────────────

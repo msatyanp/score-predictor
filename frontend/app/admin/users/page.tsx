@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import { Modal } from "@/components/ui/modal";
 import { StatusPill } from "@/components/ui/status-pill";
@@ -14,7 +14,7 @@ import {
   updateUser,
 } from "@/lib/users";
 import type { UserCreate, UserResponse } from "@/lib/users";
-import { IconCancel, IconPencil, IconPlus, IconSave, IconTrash } from "@/components/ui/icons";
+import { IconCancel, IconPencil, IconPlus, IconSave, IconSearch, IconTrash, IconX } from "@/components/ui/icons";
 import { Pagination } from "@/components/ui/pagination";
 
 const emptyFormState: UserCreate = {
@@ -39,6 +39,7 @@ const AdminUsersPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUserId, setEditingUserId] = useState<number | null>(null);
@@ -77,6 +78,26 @@ const AdminUsersPage = () => {
       isMounted = false;
     };
   }, []);
+
+  const filteredUsers = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return users;
+    return users.filter((u) => {
+      const fullName = [u.first_name, u.middle_name, u.last_name].filter(Boolean).join(" ").toLowerCase();
+      return (
+        fullName.includes(q) ||
+        u.email.toLowerCase().includes(q) ||
+        u.role.toLowerCase().includes(q) ||
+        u.mobile_no.toLowerCase().includes(q)
+      );
+    });
+  }, [users, searchQuery]);
+
+  // Reset to page 1 when search changes
+  const handleSearch = (value: string) => {
+    setSearchQuery(value);
+    setPage(1);
+  };
 
   const handleOpenCreateModal = () => {
     setEditingUserId(null);
@@ -156,6 +177,9 @@ const AdminUsersPage = () => {
     }
   };
 
+  const pagedUsers = filteredUsers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const isSearchActive = searchQuery.trim().length > 0;
+
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
       <section className="flex flex-wrap items-center justify-between gap-3">
@@ -170,6 +194,30 @@ const AdminUsersPage = () => {
         </button>
       </section>
 
+      {/* Search bar */}
+      <div className="relative">
+        <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-zinc-400 dark:text-zinc-500">
+          <IconSearch className="h-4 w-4" />
+        </span>
+        <input
+          type="search"
+          value={searchQuery}
+          onChange={(e) => handleSearch(e.target.value)}
+          placeholder="Search by name, email, role, or mobile…"
+          className="h-10 w-full rounded-md border border-zinc-200 bg-white pl-9 pr-9 text-sm text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-tournament-primary focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder:text-zinc-500 dark:focus:ring-emerald-900"
+        />
+        {isSearchActive && (
+          <button
+            type="button"
+            aria-label="Clear search"
+            onClick={() => handleSearch("")}
+            className="absolute inset-y-0 right-3 flex items-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+          >
+            <IconX className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
       {loadError ? (
         <section className="rounded-md border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-800 dark:border-rose-700 dark:bg-rose-950 dark:text-rose-300">
           {loadError}
@@ -179,14 +227,23 @@ const AdminUsersPage = () => {
       <Pagination
         page={page}
         pageSize={PAGE_SIZE}
-        total={users.length}
+        total={filteredUsers.length}
         onChange={setPage}
       />
+
       <section className="overflow-hidden rounded-md border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+        {isSearchActive && (
+          <div className="border-b border-zinc-100 px-5 py-2.5 text-xs text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+            {filteredUsers.length === 0
+              ? `No users match "${searchQuery}"`
+              : `${filteredUsers.length} of ${users.length} user${users.length !== 1 ? "s" : ""} match "${searchQuery}"`}
+          </div>
+        )}
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-zinc-200 text-sm dark:divide-zinc-700">
             <thead className="bg-zinc-50 text-left text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
               <tr>
+                <th className="px-5 py-3">S.N.</th>
                 <th className="px-5 py-3">Name</th>
                 <th className="px-5 py-3">Email</th>
                 <th className="px-5 py-3">Role</th>
@@ -197,60 +254,59 @@ const AdminUsersPage = () => {
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-8 text-center text-zinc-500 dark:text-zinc-400">
-                    Loading users...
+                  <td colSpan={6} className="px-5 py-8 text-center text-zinc-500 dark:text-zinc-400">
+                    Loading users…
                   </td>
                 </tr>
-              ) : users.length > 0 ? (
-                users
-                  .slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-                  .map((user) => (
-                    <tr key={user.id}>
-                      <td className="px-5 py-4 font-medium text-zinc-950 dark:text-zinc-50">
-                        {[user.first_name, user.middle_name, user.last_name]
-                          .filter(Boolean)
-                          .join(" ")}
-                      </td>
-                      <td className="px-5 py-4 text-zinc-700 dark:text-zinc-300">{user.email}</td>
-                      <td className="px-5 py-4">
-                        <StatusPill tone={user.role === "ADMIN" ? "primary" : "secondary"}>
-                          {user.role}
-                        </StatusPill>
-                      </td>
-                      <td className="px-5 py-4">
-                        <StatusPill tone={user.is_active ? "primary" : "accent"}>
-                          {user.is_active ? "Active" : "Inactive"}
-                        </StatusPill>
-                      </td>
-                      <td className="px-5 py-4 text-right">
-                        <div className="flex justify-end gap-1">
-                          <button
-                            type="button"
-                            title="Edit"
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-emerald-700 hover:bg-emerald-50 cursor-pointer transition dark:text-emerald-400 dark:hover:bg-emerald-950"
-                            onClick={() => handleOpenEditModal(user)}
-                          >
-                            <IconPencil className="h-4 w-4" />
-                            <span className="sr-only">Edit</span>
-                          </button>
-                          <button
-                            type="button"
-                            title="Delete"
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-rose-700 hover:bg-rose-50 cursor-pointer transition disabled:opacity-40 dark:text-rose-400 dark:hover:bg-rose-950"
-                            disabled={isDeletingId === user.id}
-                            onClick={() => void handleDelete(user)}
-                          >
-                            <IconTrash className="h-4 w-4" />
-                            <span className="sr-only">Delete</span>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+              ) : pagedUsers.length > 0 ? (
+                pagedUsers.map((user, idx) => (
+                  <tr key={user.id} className="transition-colors hover:bg-zinc-50/70 dark:hover:bg-zinc-800/40">
+                    <td className="px-5 py-4 text-left text-zinc-700 dark:text-zinc-300">{idx + 1}</td>
+                    <td className="px-5 py-4 font-medium text-zinc-950 dark:text-zinc-50">
+                      {[user.first_name, user.middle_name, user.last_name]
+                        .filter(Boolean)
+                        .join(" ")}
+                    </td>
+                    <td className="px-5 py-4 text-zinc-700 dark:text-zinc-300">{user.email}</td>
+                    <td className="px-5 py-4">
+                      <StatusPill tone={user.role === "ADMIN" ? "primary" : "secondary"}>
+                        {user.role === "ADMIN" ? "Admin" : "Player"}
+                      </StatusPill>
+                    </td>
+                    <td className="px-5 py-4">
+                      <StatusPill tone={user.is_active ? "primary" : "accent"}>
+                        {user.is_active ? "Active" : "Inactive"}
+                      </StatusPill>
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      <div className="flex justify-end gap-1">
+                        <button
+                          type="button"
+                          title="Edit"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-emerald-700 hover:bg-emerald-50 cursor-pointer transition dark:text-emerald-400 dark:hover:bg-emerald-950"
+                          onClick={() => handleOpenEditModal(user)}
+                        >
+                          <IconPencil className="h-4 w-4" />
+                          <span className="sr-only">Edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          title="Delete"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-rose-700 hover:bg-rose-50 cursor-pointer transition disabled:opacity-40 dark:text-rose-400 dark:hover:bg-rose-950"
+                          disabled={isDeletingId === user.id}
+                          onClick={() => void handleDelete(user)}
+                        >
+                          <IconTrash className="h-4 w-4" />
+                          <span className="sr-only">Delete</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
               ) : (
                 <tr>
                   <td colSpan={5} className="px-5 py-8 text-center text-zinc-500 dark:text-zinc-400">
-                    No users found.
+                    {isSearchActive ? `No users match "${searchQuery}".` : "No users found."}
                   </td>
                 </tr>
               )}
@@ -258,6 +314,13 @@ const AdminUsersPage = () => {
           </table>
         </div>
       </section>
+
+      <Pagination
+        page={page}
+        pageSize={PAGE_SIZE}
+        total={filteredUsers.length}
+        onChange={setPage}
+      />
 
       <Modal
         isOpen={isModalOpen}
@@ -382,7 +445,7 @@ const AdminUsersPage = () => {
               className="inline-flex h-11 px-4 items-center gap-2 justify-center cursor-pointer rounded-md bg-tournament-primary px-4 text-sm font-semibold text-white transition hover:bg-tournament-primary disabled:cursor-not-allowed disabled:bg-zinc-400"
             >
               <IconSave className="h-4 w-4" />
-              {isSubmitting ? "Saving..." : "Save User"}
+              {isSubmitting ? "Saving…" : "Save User"}
             </button>
           </div>
         </form>

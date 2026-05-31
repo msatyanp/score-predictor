@@ -17,6 +17,14 @@ import type {
   UserPointsDetailsResponse,
 } from "@/lib/leaderboard";
 
+export type LeaderboardRow = {
+  name: string;
+  points: number;
+  rank: number;
+  trend: string;
+  exactScores: number;
+};
+
 const getLoadErrorMessage = (error: unknown): string => {
   if (error instanceof ApiError) {
     return error.message;
@@ -241,12 +249,12 @@ const UserPointsDetailModal = ({
     }
 
     let isMounted = true;
-    setIsLoading(true);
-    setError(null);
-    setData(null);
 
     const load = async () => {
       try {
+        setIsLoading(true);
+        setError(null);
+        setData(null);
         const result = await getUserPredictionDetails(userId);
         if (isMounted) {
           setData(result);
@@ -571,7 +579,7 @@ const RaceChart = ({ frames, onUserClick }: { frames: LeaderboardRaceFrameRespon
     <section className="overflow-hidden rounded-md border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
       <div className="flex flex-col gap-4 border-b border-zinc-200 px-5 py-4 lg:flex-row lg:items-end lg:justify-between dark:border-zinc-700">
         <div>
-          <h2 className="text-lg font-semibold text-zinc-950 dark:text-zinc-100">LeaderBoard Race</h2>
+          <h2 className="text-lg font-semibold text-zinc-950 dark:text-zinc-100">Leaderboard Race</h2>
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{frame.label}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">

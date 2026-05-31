@@ -34,6 +34,7 @@ class MatchService:
         *,
         offset: int,
         limit: int,
+        is_admin: bool = False,
         match_stage: str | None = None,
         match_day: int | None = None,
         match_locked: bool | None = None,
@@ -41,7 +42,7 @@ class MatchService:
         """Return paginated matches for admin screens."""
         try:
 
-            if match_day is None and match_stage is None:
+            if not is_admin and match_day is None and match_stage is None:
                 setting = await self._setting_repository.get_by_name("current_match_day")
                 match_day = int(setting.value) if setting else None
 

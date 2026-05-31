@@ -17,6 +17,19 @@ export const getStatusTone = (status: PredictionStatus): PillTone => {
   return "accent";
 };
 
+export type MatchCard = {
+  awayFlag: string | null;
+  awayTeam: string;
+  day: string;
+  group: string;
+  homeFlag: string | null;
+  homeTeam: string;
+  id: number;
+  kickOff: string;
+  lockState: "Open" | "Locking soon" | "Locked";
+  venue: string;
+};
+
 export const getPredictionStatus = (
   match: MatchResponse,
 ): "Locked" | "Locking soon" | "Open" => {
@@ -123,14 +136,14 @@ const MatchTitle = (match: MatchResponse) => {
 
 export const MatchVenue = (match: MatchResponse) => {
   return <dl>
-    <div className="flex w-full flex-col items-center justify-center">
+    <div className="flex w-full flex-col mt-4 items-center justify-center">
       <Link href={`https://google.com/search?q=${match.venue_name?.trim()}`} target="_blank" className="flex items-center justify-center cursor-pointer p-3 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-300 transition">
         <svg xmlns="http://w3.org" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6">
           <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
           <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
         </svg>
       </Link>
-      <dd className="mt-1 font-medium text-zinc-950 dark:text-zinc-50">{match.venue_name ? <Link target="_blank" href={`https://google.com/search?q=${match.venue_name?.trim()}`} className="text-tournament-primary hover:text-tournament-primary">{match.venue_name?.trim()}</Link> : "TBA"}</dd>
+      <dd className="mt-2 font-medium text-zinc-950 dark:text-zinc-50">{match.venue_name ? <Link target="_blank" href={`https://google.com/search?q=${match.venue_name?.trim()}`} className="text-tournament-primary-light hover:text-tournament-primary">{match.venue_name?.trim()}</Link> : "TBA"}</dd>
     </div>
   </dl>
 };

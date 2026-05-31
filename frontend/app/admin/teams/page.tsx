@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import { Modal } from "@/components/ui/modal";
 import { getErrorMessage } from "@/lib/forms/error-message";
@@ -12,7 +12,7 @@ import {
 } from "@/lib/teams";
 import type { TeamCreate, TeamResponse } from "@/lib/teams";
 import Image from "next/image";
-import { IconCancel, IconPencil, IconPlus, IconSave, IconTrash } from "@/components/ui/icons";
+import { IconCancel, IconPencil, IconPlus, IconSave, IconSearch, IconTrash, IconX } from "@/components/ui/icons";
 import { Pagination } from "@/components/ui/pagination";
 
 const emptyFormState: TeamCreate = {
@@ -32,6 +32,7 @@ const AdminTeamsPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTeamId, setEditingTeamId] = useState<number | null>(null);
@@ -70,6 +71,22 @@ const AdminTeamsPage = () => {
       isMounted = false;
     };
   }, []);
+
+  const filteredTeams = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return teams;
+    return teams.filter((t) =>
+      t.name.toLowerCase().includes(q) ||
+      t.group.toLowerCase().includes(q) ||
+      t.fifa_code.toLowerCase().includes(q) ||
+      String(t.fifa_rank).includes(q)
+    );
+  }, [teams, searchQuery]);
+
+  const handleSearch = (value: string) => {
+    setSearchQuery(value);
+    setPage(1);
+  };
 
   const handleOpenCreateModal = () => {
     setEditingTeamId(null);
@@ -140,6 +157,9 @@ const AdminTeamsPage = () => {
     }
   };
 
+  const pagedTeams = filteredTeams.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const isSearchActive = searchQuery.trim().length > 0;
+
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
       <section className="flex flex-wrap items-center justify-between gap-3">
@@ -154,6 +174,30 @@ const AdminTeamsPage = () => {
         </button>
       </section>
 
+      {/* Search bar */}
+      <div className="relative">
+        <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-zinc-400 dark:text-zinc-500">
+          <IconSearch className="h-4 w-4" />
+        </span>
+        <input
+          type="search"
+          value={searchQuery}
+          onChange={(e) => handleSearch(e.target.value)}
+          placeholder="Search by name, group, FIFA code, or rank…"
+          className="h-10 w-full rounded-md border border-zinc-200 bg-white pl-9 pr-9 text-sm text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-tournament-primary focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder:text-zinc-500 dark:focus:ring-emerald-900"
+        />
+        {isSearchActive && (
+          <button
+            type="button"
+            aria-label="Clear search"
+            onClick={() => handleSearch("")}
+            className="absolute inset-y-0 right-3 flex items-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+          >
+            <IconX className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
       {loadError ? (
         <section className="rounded-md border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-800 dark:border-rose-700 dark:bg-rose-950 dark:text-rose-300">
           {loadError}
@@ -163,14 +207,23 @@ const AdminTeamsPage = () => {
       <Pagination
         page={page}
         pageSize={PAGE_SIZE}
-        total={teams.length}
+        total={filteredTeams.length}
         onChange={setPage}
       />
+
       <section className="overflow-hidden rounded-md border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+        {isSearchActive && (
+          <div className="border-b border-zinc-100 px-5 py-2.5 text-xs text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+            {filteredTeams.length === 0
+              ? `No teams match "${searchQuery}"`
+              : `${filteredTeams.length} of ${teams.length} team${teams.length !== 1 ? "s" : ""} match "${searchQuery}"`}
+          </div>
+        )}
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-zinc-200 text-sm dark:divide-zinc-700">
             <thead className="bg-zinc-50 text-left text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
               <tr>
+                <th className="px-5 py-3">S.N.</th>
                 <th className="px-5 py-3">Team</th>
                 <th className="px-5 py-3">FIFA code</th>
                 <th className="px-5 py-3">Group</th>
@@ -181,53 +234,52 @@ const AdminTeamsPage = () => {
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
               {isLoading ? (
                 <tr>
-                  <td colSpan={4} className="px-5 py-8 text-center text-zinc-500 dark:text-zinc-400">
-                    Loading teams...
+                  <td colSpan={6} className="px-5 py-8 text-center text-zinc-500 dark:text-zinc-400">
+                    Loading teams…
                   </td>
                 </tr>
-              ) : teams.length > 0 ? (
-                teams
-                  .slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-                  .map((team) => (
-                    <tr key={team.id}>
-                      <td className="px-5 py-4 font-medium text-zinc-950 dark:text-zinc-50">
-                        <div className="flex items-center gap-2">
-                          <Image width={30} height={30} className="min-h-[25px] w-auto rounded object-cover shadow-sm" decoding="async" loading="lazy" src={team.flag_url} alt="flag" />
-                          <span className="ml-2">{team.name}</span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-4 text-zinc-700 dark:text-zinc-300">{team.fifa_code}</td>
-                      <td className="px-5 py-4 text-zinc-700 dark:text-zinc-300">{team.group}</td>
-                      <td className="px-5 py-4 text-zinc-700 dark:text-zinc-300">{team.fifa_rank}</td>
-                      <td className="px-5 py-4 text-right">
-                        <div className="flex justify-end gap-1">
-                          <button
-                            type="button"
-                            title="Edit"
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-emerald-700 hover:bg-emerald-50 cursor-pointer transition dark:text-emerald-400 dark:hover:bg-emerald-950"
-                            onClick={() => handleOpenEditModal(team)}
-                          >
-                            <IconPencil className="h-4 w-4" />
-                            <span className="sr-only">Edit</span>
-                          </button>
-                          <button
-                            type="button"
-                            title="Delete"
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-rose-700 hover:bg-rose-50 cursor-pointer transition disabled:opacity-40 dark:text-rose-400 dark:hover:bg-rose-950"
-                            disabled={isDeletingId === team.id}
-                            onClick={() => void handleDelete(team)}
-                          >
-                            <IconTrash className="h-4 w-4" />
-                            <span className="sr-only">Delete</span>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+              ) : pagedTeams.length > 0 ? (
+                pagedTeams.map((team, idx) => (
+                  <tr key={team.id} className="transition-colors hover:bg-zinc-50/70 dark:hover:bg-zinc-800/40">
+                    <td className="px-5 py-4 font-medium text-zinc-950 dark:text-zinc-50">{idx + 1}</td>
+                    <td className="px-5 py-4 font-medium text-zinc-950 dark:text-zinc-50">
+                      <div className="flex items-center gap-2">
+                        <Image width={30} height={30} className="min-h-[25px] w-auto rounded object-cover shadow-sm" decoding="async" loading="lazy" src={team.flag_url} alt="flag" />
+                        <span className="ml-2">{team.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4 text-zinc-700 dark:text-zinc-300">{team.fifa_code}</td>
+                    <td className="px-5 py-4 text-zinc-700 dark:text-zinc-300">{team.group}</td>
+                    <td className="px-5 py-4 text-zinc-700 dark:text-zinc-300">{team.fifa_rank}</td>
+                    <td className="px-5 py-4 text-right">
+                      <div className="flex justify-end gap-1">
+                        <button
+                          type="button"
+                          title="Edit"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-emerald-700 hover:bg-emerald-50 cursor-pointer transition dark:text-emerald-400 dark:hover:bg-emerald-950"
+                          onClick={() => handleOpenEditModal(team)}
+                        >
+                          <IconPencil className="h-4 w-4" />
+                          <span className="sr-only">Edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          title="Delete"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-rose-700 hover:bg-rose-50 cursor-pointer transition disabled:opacity-40 dark:text-rose-400 dark:hover:bg-rose-950"
+                          disabled={isDeletingId === team.id}
+                          onClick={() => void handleDelete(team)}
+                        >
+                          <IconTrash className="h-4 w-4" />
+                          <span className="sr-only">Delete</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
               ) : (
                 <tr>
-                  <td colSpan={4} className="px-5 py-8 text-center text-zinc-500 dark:text-zinc-400">
-                    No teams found.
+                  <td colSpan={5} className="px-5 py-8 text-center text-zinc-500 dark:text-zinc-400">
+                    {isSearchActive ? `No teams match "${searchQuery}".` : "No teams found."}
                   </td>
                 </tr>
               )}
@@ -235,6 +287,13 @@ const AdminTeamsPage = () => {
           </table>
         </div>
       </section>
+
+      <Pagination
+        page={page}
+        pageSize={PAGE_SIZE}
+        total={filteredTeams.length}
+        onChange={setPage}
+      />
 
       <Modal
         isOpen={isModalOpen}
@@ -244,47 +303,19 @@ const AdminTeamsPage = () => {
         <form onSubmit={(e) => void handleSubmit(e)} className="flex flex-col gap-4">
           <label className="block">
             <span className={labelCls}>Name</span>
-            <input
-              type="text"
-              required
-              value={formState.name}
-              onChange={(e) => updateField("name", e.target.value)}
-              className={inputCls}
-            />
+            <input type="text" required value={formState.name} onChange={(e) => updateField("name", e.target.value)} className={inputCls} />
           </label>
           <label className="block">
             <span className={labelCls}>Group</span>
-            <input
-              type="text"
-              required
-              value={formState.group}
-              onChange={(e) => updateField("group", e.target.value)}
-              className={inputCls}
-            />
+            <input type="text" required value={formState.group} onChange={(e) => updateField("group", e.target.value)} className={inputCls} />
           </label>
           <label className="block">
             <span className={labelCls}>FIFA code</span>
-            <input
-              type="text"
-              required
-              maxLength={3}
-              minLength={2}
-              value={formState.fifa_code}
-              onChange={(e) => updateField("fifa_code", e.target.value)}
-              className={inputCls + " uppercase"}
-            />
+            <input type="text" required maxLength={3} minLength={2} value={formState.fifa_code} onChange={(e) => updateField("fifa_code", e.target.value)} className={inputCls + " uppercase"} />
           </label>
-
           <label className="block">
             <span className={labelCls}>FIFA rank</span>
-            <input
-              min={0}
-              type="number"
-              required
-              value={formState.fifa_rank}
-              onChange={(e) => updateField("fifa_rank", e.target.value)}
-              className={inputCls + " uppercase"}
-            />
+            <input min={0} type="number" required value={formState.fifa_rank} onChange={(e) => updateField("fifa_rank", e.target.value)} className={inputCls} />
           </label>
 
           {formError ? (
@@ -308,7 +339,7 @@ const AdminTeamsPage = () => {
               className="inline-flex h-11 px-4 items-center gap-2 justify-center rounded-md bg-tournament-primary px-4 text-sm font-semibold text-white transition hover:bg-tournament-primary disabled:cursor-not-allowed disabled:bg-zinc-400"
             >
               <IconSave className="h-4 w-4" />
-              {isSubmitting ? "Saving..." : "Save Team"}
+              {isSubmitting ? "Saving…" : "Save Team"}
             </button>
           </div>
         </form>
