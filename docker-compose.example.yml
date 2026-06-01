@@ -17,6 +17,29 @@
 
 services:
 
+  # ── Backend (FastAPI) ────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sp_backend
+    restart: unless-stopped
+    env_file: .env
+    extra_hosts:
+      # Allows containers to reach the host's MySQL on all platforms
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8025:8000"
+    networks:
+      - sp_net
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
   # ── Frontend (Next.js) ───────────────────────────────────────────────────────
   frontend:
     build:
@@ -33,32 +56,9 @@ services:
       backend:
         condition: service_healthy
     ports:
-      - "8025:3000"
+      - "8026:3000"
     networks:
       - sp_net
-
-  # ── Backend (FastAPI) ────────────────────────────────────────────────────────
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: sp_backend
-    restart: unless-stopped
-    env_file: .env
-    extra_hosts:
-      # Allows containers to reach the host's MySQL on all platforms
-      - "host.docker.internal:host-gateway"
-    ports:
-      - "8026:8000"
-    networks:
-      - sp_net
-    healthcheck:
-      test: ["CMD", "python", "-c",
-             "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
 
 # =============================================================================
 networks:

@@ -1,6 +1,11 @@
 # ── Stage 1: deps ─────────────────────────────────────────────────────────────
-FROM node:22-alpine AS deps
+FROM node:23-alpine AS deps
+
 WORKDIR /app
+
+# Set environment variables for pnpm
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
 
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
