@@ -1,0 +1,66 @@
+# =============================================================================
+# docker-compose.yml  –  Football Score Predictor
+#
+# Services
+#   backend   – FastAPI + APScheduler  (port 8025)
+#   frontend  – Next.js 16 standalone  (port 8026)
+#
+# The MySQL database runs on the HOST machine, not inside Docker.
+# On Linux the backend reaches it via host.docker.internal (enabled below).
+# On macOS / Windows Docker Desktop exposes host.docker.internal automatically.
+#
+# Usage
+#   cp .docker-compose.example.env          # set DATABASE_URL host to host.docker.internal
+#   docker compose up --build -d
+#   docker compose logs -f
+# =============================================================================
+
+services:
+
+  # ── Backend (FastAPI) ────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sp_backend
+    restart: unless-stopped
+    env_file: .env
+    extra_hosts:
+      # Allows containers to reach the host's MySQL on all platforms
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8025:8025"
+    networks:
+      - sp_net
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8025/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ── Frontend (Next.js) ───────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Baked into the Next.js bundle at build time
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8025/api/v1}
+    container_name: sp_frontend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "8026:8026"
+    networks:
+      - sp_net
+
+# =============================================================================
+networks:
+  sp_net:
+    driver: bridge

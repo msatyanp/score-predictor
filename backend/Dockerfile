@@ -36,7 +36,9 @@ COPY --chown=appuser:appgroup . .
 
 USER appuser
 
-EXPOSE 8025
+# Railway provides PORT, default to 8025 for local
+ENV PORT=8025
+EXPOSE $PORT
 
 # DATABASE_URL, JWT_SECRET, EMAIL_* etc. are injected at runtime via .env / compose
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8025"]
+CMD uvicorn app.main:app --host 0.0.0.0 --port $PORT
