@@ -1,0 +1,110 @@
+╔══════════════════════════════════════════════════════════════════════════╗
+║                   🚀 DEPLOYMENT CHECKLIST                                ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+✅ COMPLETED:
+  ✓ Removed old Git remote
+  ✓ Updated .gitignore (protects sensitive files)
+  ✓ Created .env.example (template for others)
+  ✓ Added Railway configuration (railway.toml)
+  ✓ Updated Dockerfile for Railway
+  ✓ Created deployment guides
+  ✓ Committed all changes
+  ✓ Verified .env is NOT tracked
+
+📋 TODO - FOLLOW THESE STEPS IN ORDER:
+
+STEP 1: PUSH TO GITHUB (5 minutes)
+  ☐ Go to https://github.com/new
+  ☐ Create repository: "score-predictor"
+  ☐ Copy your repository URL
+  ☐ Run: git remote add origin https://github.com/YOUR_USERNAME/score-predictor.git
+  ☐ Run: git push -u origin main
+  ☐ Verify on GitHub that .env is NOT visible
+
+STEP 2: DEPLOY BACKEND TO RAILWAY (10 minutes)
+  ☐ Go to https://railway.app
+  ☐ Sign up with GitHub
+  ☐ New Project → Deploy from GitHub repo
+  ☐ Select your repository
+  ☐ Set Root Directory: backend
+  ☐ Add environment variables (copy from .env, but update CORS_ORIGINS to JSON array)
+  ☐ Wait for deployment
+  ☐ Generate domain (Settings → Networking)
+  ☐ Test: curl https://your-backend.railway.app/health
+  ☐ Copy your Railway URL for next step
+
+STEP 3: DEPLOY FRONTEND TO VERCEL (5 minutes)
+  ☐ Go to https://vercel.com
+  ☐ Sign up with GitHub
+  ☐ Import project → Select your repository
+  ☐ Root Directory: frontend
+  ☐ Add env var: NEXT_PUBLIC_API_BASE_URL = https://your-railway-url/api/v1
+  ☐ Deploy
+  ☐ Copy your Vercel URL
+
+STEP 4: UPDATE BACKEND CORS (2 minutes)
+  ☐ Go to Railway → Variables
+  ☐ Update: SITE_URL = https://your-vercel-url
+  ☐ Update: CORS_ORIGINS = ["https://your-vercel-url"]
+  ☐ Wait for auto-redeploy
+
+STEP 5: TEST EVERYTHING (5 minutes)
+  ☐ Open frontend: https://your-vercel-url
+  ☐ Check backend health: curl https://your-railway-url/health
+  ☐ Check API docs: https://your-railway-url/docs
+  ☐ Check Railway logs for scheduler jobs
+  ☐ Test signup/login on frontend
+
+╔══════════════════════════════════════════════════════════════════════════╗
+║                   📚 HELPFUL COMMANDS                                    ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+Push to GitHub:
+  cd /Users/satya/Desktop/score-predictor
+  git remote add origin https://github.com/YOUR_USERNAME/score-predictor.git
+  git push -u origin main
+
+Test backend health:
+  curl https://your-backend.railway.app/health
+
+View local logs:
+  docker logs sp_backend --follow
+
+╔══════════════════════════════════════════════════════════════════════════╗
+║                   📖 DOCUMENTATION FILES                                 ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+QUICK_START.md    → Start here! Complete step-by-step guide
+GITHUB_SETUP.md   → Detailed GitHub instructions
+DEPLOYMENT.md     → Detailed Railway & Vercel deployment
+Readme.md         → Project documentation
+
+╔══════════════════════════════════════════════════════════════════════════╗
+║                   ⚠️  IMPORTANT REMINDERS                                ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+⚠️  NEVER commit your .env file
+⚠️  URL-encode special chars in DATABASE_URL: # → %23, @ → %40, ! → %21
+⚠️  CORS_ORIGINS must be JSON array: ["https://url.com"]
+⚠️  Update Gmail to use "App Password" not regular password
+⚠️  Railway free tier: $5/month credit (~500 hours)
+
+╔══════════════════════════════════════════════════════════════════════════╗
+║                   💰 ESTIMATED COSTS                                     ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+GitHub:    FREE
+Vercel:    FREE (generous limits)
+Railway:   $5/month free credit, then ~$5-10/month
+Database:  FREE (using freehostia.com)
+
+TOTAL:     ~$5-10/month (or FREE with Railway credits during tournament)
+
+╔══════════════════════════════════════════════════════════════════════════╗
+║                   🎯 YOU'RE READY TO DEPLOY!                             ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+Start with: QUICK_START.md
+
+Good luck! ⚽🏆
