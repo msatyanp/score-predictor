@@ -6,6 +6,7 @@ import type {
   SettingListResponse,
   SettingResponse,
   SettingUpdate,
+  GameRulesResponse,
 } from "@/lib/settings/types";
 
 const toQueryString = (params: ListSettingsParams): string => {
@@ -39,11 +40,11 @@ export const listSetting = async (
 
 export const listRules = async (
   params: ListSettingsParams = {},
-): Promise<SettingListResponse> => {
+): Promise<GameRulesResponse> => {
   const queryString = toQueryString(params);
   const path = queryString ? `/rules?${queryString}` : "/rules";
 
-  return apiFetch<SettingListResponse>(path, {
+  return apiFetch<GameRulesResponse>(path, {
     method: "GET",
   });
 };

@@ -11,6 +11,7 @@ import {
   updateTeam,
 } from "@/lib/teams";
 import type { TeamCreate, TeamResponse } from "@/lib/teams";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 import Image from "next/image";
 import { IconCancel, IconPencil, IconPlus, IconSave, IconSearch, IconTrash, IconX } from "@/components/ui/icons";
 import { Pagination } from "@/components/ui/pagination";
@@ -41,6 +42,7 @@ const AdminTeamsPage = () => {
   const [formError, setFormError] = useState<string | null>(null);
 
   const [isDeletingId, setIsDeletingId] = useState<number | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<TeamResponse | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -141,17 +143,20 @@ const AdminTeamsPage = () => {
     }
   };
 
-  const handleDelete = async (team: TeamResponse) => {
-    if (!window.confirm(`Delete team ${team.name}?`)) {
-      return;
-    }
+  const handleDeleteClick = (team: TeamResponse) => {
+    setDeleteTarget(team);
+  };
 
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    const team = deleteTarget;
+    setDeleteTarget(null);
     setIsDeletingId(team.id);
     try {
       await deleteTeam(team.id);
       setTeams((current) => current.filter((t) => t.id !== team.id));
     } catch (error) {
-      alert(getErrorMessage(error, "Unable to delete team."));
+      setLoadError(getErrorMessage(error, "Unable to delete team."));
     } finally {
       setIsDeletingId(null);
     }
@@ -183,7 +188,7 @@ const AdminTeamsPage = () => {
           type="search"
           value={searchQuery}
           onChange={(e) => handleSearch(e.target.value)}
-          placeholder="Search by name, group, FIFA code, or rank…"
+          placeholder="Search by name, group, FIFA code, or rank..."
           className="h-10 w-full rounded-md border border-zinc-200 bg-white pl-9 pr-9 text-sm text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-tournament-primary focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder:text-zinc-500 dark:focus:ring-emerald-900"
         />
         {isSearchActive && (
@@ -267,7 +272,7 @@ const AdminTeamsPage = () => {
                           title="Delete"
                           className="inline-flex h-8 w-8 items-center justify-center rounded-md text-rose-700 hover:bg-rose-50 cursor-pointer transition disabled:opacity-40 dark:text-rose-400 dark:hover:bg-rose-950"
                           disabled={isDeletingId === team.id}
-                          onClick={() => void handleDelete(team)}
+                          onClick={() => handleDeleteClick(team)}
                         >
                           <IconTrash className="h-4 w-4" />
                           <span className="sr-only">Delete</span>
@@ -278,7 +283,7 @@ const AdminTeamsPage = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="px-5 py-8 text-center text-zinc-500 dark:text-zinc-400">
+                  <td colSpan={6} className="px-5 py-8 text-center text-zinc-500 dark:text-zinc-400">
                     {isSearchActive ? `No teams match "${searchQuery}".` : "No teams found."}
                   </td>
                 </tr>
@@ -295,10 +300,20 @@ const AdminTeamsPage = () => {
         onChange={setPage}
       />
 
+      <ConfirmModal
+        isOpen={deleteTarget !== null}
+        title="Delete Team"
+        message={deleteTarget ? `Are you sure you want to delete ${deleteTarget.name}? This action cannot be undone.` : ""}
+        confirmLabel="Delete"
+        isDangerous
+        onConfirm={() => void handleDeleteConfirm()}
+        onCancel={() => setDeleteTarget(null)}
+      />
+
       <Modal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        title={editingTeamId ? "Edit team" : "New team"}
+        title={editingTeamId ? "Edit Team" : "New Team"}
       >
         <form onSubmit={(e) => void handleSubmit(e)} className="flex flex-col gap-4">
           <label className="block">

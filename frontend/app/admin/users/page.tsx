@@ -14,6 +14,7 @@ import {
   updateUser,
 } from "@/lib/users";
 import type { UserCreate, UserResponse } from "@/lib/users";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { IconCancel, IconPencil, IconPlus, IconSave, IconSearch, IconTrash, IconX } from "@/components/ui/icons";
 import { Pagination } from "@/components/ui/pagination";
 
@@ -48,6 +49,7 @@ const AdminUsersPage = () => {
   const [formError, setFormError] = useState<string | null>(null);
 
   const [isDeletingId, setIsDeletingId] = useState<number | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<UserResponse | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -161,17 +163,20 @@ const AdminUsersPage = () => {
     }
   };
 
-  const handleDelete = async (user: UserResponse) => {
-    if (!window.confirm(`Delete user ${user.email}?`)) {
-      return;
-    }
+  const handleDeleteClick = (user: UserResponse) => {
+    setDeleteTarget(user);
+  };
 
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    const user = deleteTarget;
+    setDeleteTarget(null);
     setIsDeletingId(user.id);
     try {
       await deleteUser(user.id);
       setUsers((current) => current.filter((u) => u.id !== user.id));
     } catch (error) {
-      alert(getErrorMessage(error, "Unable to delete user."));
+      setLoadError(getErrorMessage(error, "Unable to delete user."));
     } finally {
       setIsDeletingId(null);
     }
@@ -203,7 +208,7 @@ const AdminUsersPage = () => {
           type="search"
           value={searchQuery}
           onChange={(e) => handleSearch(e.target.value)}
-          placeholder="Search by name, email, role, or mobile…"
+          placeholder="Search by name, email, role, or mobile..."
           className="h-10 w-full rounded-md border border-zinc-200 bg-white pl-9 pr-9 text-sm text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-tournament-primary focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder:text-zinc-500 dark:focus:ring-emerald-900"
         />
         {isSearchActive && (
@@ -294,7 +299,7 @@ const AdminUsersPage = () => {
                           title="Delete"
                           className="inline-flex h-8 w-8 items-center justify-center rounded-md text-rose-700 hover:bg-rose-50 cursor-pointer transition disabled:opacity-40 dark:text-rose-400 dark:hover:bg-rose-950"
                           disabled={isDeletingId === user.id}
-                          onClick={() => void handleDelete(user)}
+                          onClick={() => handleDeleteClick(user)}
                         >
                           <IconTrash className="h-4 w-4" />
                           <span className="sr-only">Delete</span>
@@ -305,7 +310,7 @@ const AdminUsersPage = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="px-5 py-8 text-center text-zinc-500 dark:text-zinc-400">
+                  <td colSpan={6} className="px-5 py-8 text-center text-zinc-500 dark:text-zinc-400">
                     {isSearchActive ? `No users match "${searchQuery}".` : "No users found."}
                   </td>
                 </tr>
@@ -322,10 +327,20 @@ const AdminUsersPage = () => {
         onChange={setPage}
       />
 
+      <ConfirmModal
+        isOpen={deleteTarget !== null}
+        title="Delete User"
+        message={deleteTarget ? `Are you sure you want to delete ${deleteTarget.email}? This action cannot be undone.` : ""}
+        confirmLabel="Delete"
+        isDangerous
+        onConfirm={() => void handleDeleteConfirm()}
+        onCancel={() => setDeleteTarget(null)}
+      />
+
       <Modal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        title={editingUserId ? "Edit user" : "New user"}
+        title={editingUserId ? "Edit User" : "New User"}
       >
         <form onSubmit={(e) => void handleSubmit(e)} className="flex flex-col gap-4">
           <label className="block">
@@ -413,7 +428,7 @@ const AdminUsersPage = () => {
               />
             </label>
           </div>
-          <label className="flex items-center gap-3 rounded-md border border-zinc-200 px-3 py-3 text-sm font-medium text-zinc-700 dark:border-zinc-700 dark:text-zinc-300">
+          <label className="flex items-center gap-3 cursor-pointer rounded-md border border-zinc-200 px-3 py-3 text-sm font-medium text-zinc-700 dark:border-zinc-700 dark:text-zinc-300">
             <input
               autoComplete=""
               type="checkbox"

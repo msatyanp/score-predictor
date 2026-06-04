@@ -13,3 +13,4 @@ export type {
   SettingResponse,
   SettingUpdate,
 } from "@/lib/settings/types";
+export type { GameRuleGroup, GameRuleEntry } from "@/lib/settings/types";

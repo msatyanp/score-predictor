@@ -572,6 +572,7 @@ export const PredictionsDashboard = () => {
                 match={match}
                 isSaved={isSaved}
                 isSelected={isSelected}
+                isPredictionAvailable={getPredictionStatus(match) !== "Locked"}
                 handleCardClick={handleCardClick}
               />
             );
