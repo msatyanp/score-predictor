@@ -197,6 +197,29 @@ Now that frontend is deployed, update Railway environment variables:
 - [GITHUB_SETUP.md](GITHUB_SETUP.md) - Detailed GitHub setup
 - [DEPLOYMENT.md](DEPLOYMENT.md) - Complete deployment guide
 - [Readme.md](Readme.md) - Project documentation
+### Database Initialization
+
+The MySQL container automatically runs any `.sql` files placed in the `./init/` directory on first start.  
+Our `init/worldcup2026_backup.sql` seeds the `matches` table and other related tables.
+
+**To apply changes after editing the init scripts:**
+
+1. Stop the stack: `docker compose down`
+2. Remove the volume (if you don't need existing data): `docker volume rm score-predictor_mysql_data`
+3. Bring the stack back up: `docker compose up --build -d`
+
+*Or* run the script manually against the running container:
+
+```bash
+docker exec -i sp_mysql mysql -u${MYSQL_USER:-sp_user} -p${MYSQL_PASSWORD:-sp_password} ${MYSQL_DATABASE:-sp_db} < /docker-entrypoint-initdb.d/worldcup2026_backup.sql
+```
+
+Afterwards, verify tables with:
+
+```bash
+docker exec -i sp_mysql mysql -u${MYSQL_USER:-sp_user} -p${MYSQL_PASSWORD:-sp_password} ${MYSQL_DATABASE:-sp_db} -e "SHOW TABLES;"
+```
+
 
 ---
 

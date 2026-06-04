@@ -16,6 +16,44 @@
 # =============================================================================
 
 services:
+  mysql:
+    image: mysql:8.0
+    container_name: sp_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-sp_db}
+      MYSQL_USER: ${MYSQL_USER:-sp_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-sp_password}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init:/docker-entrypoint-initdb.d
+    networks:
+      - sp_net
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-rootpassword}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: phpmyadmin
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: ${MYSQL_USER:-sp_user}
+      PMA_PASSWORD: ${MYSQL_PASSWORD:-sp_password}
+    ports:
+      - "8080:80"
+    networks:
+      - sp_net
 
   # ── Backend (FastAPI) ────────────────────────────────────────────────────────
   backend:
@@ -33,8 +71,7 @@ services:
     networks:
       - sp_net
     healthcheck:
-      test: ["CMD", "python", "-c",
-             "import urllib.request; urllib.request.urlopen('http://localhost:8025/health')"]
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8025/health')" ]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -64,3 +101,5 @@ services:
 networks:
   sp_net:
     driver: bridge
+volumes:
+  mysql_data:
